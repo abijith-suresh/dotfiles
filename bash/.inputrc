@@ -1,0 +1,6 @@
+# Enable case-insensitive autocompletion
+set completion-ignore-case on
+
+# Enable menu-style completion
+"\e[A": history-search-backward
+"\e[B": history-search-forward
