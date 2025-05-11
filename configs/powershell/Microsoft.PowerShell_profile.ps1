@@ -25,16 +25,13 @@ Set-PSReadLineOption -HistorySavePath "$HOME\.ps_history"
 # --------------------------------------
 # 🔁 Git Functions
 # --------------------------------------
-function gs { git status }
-function ga { git add $args }
-function gitc {
-    param([string]$message)
-    git commit -m $message
-}
-function gp { git push }
-function gl { git log }
-function gco { git checkout $args }
-function gb { git branch $args }
+function gits { git status }
+function gita { git add $args }
+function gitc { git commit -m $args }
+function gitp { git push }
+function gitl { git log }
+function gitco { git checkout $args }
+function gitb { git branch $args }
 
 # --------------------------------------
 # 🔁 Directory Navigation
