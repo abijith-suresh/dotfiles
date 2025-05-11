@@ -1,36 +1,72 @@
-# Load Starship Prompt
-eval "$(starship init bash)"
+# ~/.bashrc
+# ============================
+# Bash Configuration for Abijith
+# Organized, documented, and optimized for performance & usability.
+# ============================
 
-# Aliases
-alias ll='ls -lh --color=auto'
-alias la='ls -A'
+# --- Environment Variables ---
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+export PAGER="less"
+
+# --- Aliases ---
+# File Management
+alias ls='eza --icons --color=auto'
+alias ll='eza -l --color=auto'
+alias la='eza -A --color=auto'
+alias mkdir='mkdir -pv'
 alias ..='cd ..'
+alias ...='cd ../..'
+alias c='clear'
+alias v='nvim'
+alias :q='exit'
+
+# Git Shortcuts
 alias g='git'
 alias gs='git status'
-alias gc='git commit'
+alias ga='git add'
+alias gc='git commit -m'
 alias gp='git push'
 alias gl='git log --oneline --graph --all'
+alias gco='git checkout'
+alias gb='git branch'
 
-# Use bat for better cat command
-alias cat='bat'
+# Tools & Enhancements
+alias grep='grep --color=auto'
+alias cat='bat'             # Use bat if available
+alias please='sudo'
 
-# Use eza (eza is an alternative to ls)
-alias ls='eza --icons'   # You can customize eza flags based on your preference
+# fzf integration
+alias f='fzf'
+alias ff='fzf --preview "bat --style=numbers --color=always --line-range :500 {}"'
 
-# Fuzzy file finding with fzf
-alias f='fzf'  # Launch fzf for quick file search
-alias ff='fzf --preview "bat --style=numbers --color=always --line-range :500 {}"'  # Preview files in fzf
+# Use zoxide for navigation
+alias cd='z'
 
-# zoxide (advanced cd command)
-alias z='zoxide'
-alias zz='zoxide query'  # Quickly query your zoxide history
+# --- Functions ---
+# Make directory and cd into it
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
 
-# >>> Environment
-export EDITOR=nvim
-export PAGER=less
+# Update tools manually
+update-env() {
+  echo "Manual update for Git Bash. Consider updating tools individually."
+  echo "e.g., scoop update *, or git pull for dotfiles"
+}
 
-# Fzf init
+# Reload bashrc
+reload-bash() {
+  source ~/.bashrc
+  echo ".bashrc reloaded!"
+}
+
+# --- fzf Initialization ---
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 
-# zoxide init
+# --- zoxide Initialization ---
 eval "$(zoxide init bash)"
+
+# --- Starship Prompt ---
+eval "$(starship init bash)"
