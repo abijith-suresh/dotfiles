@@ -65,8 +65,8 @@ reload-bash() {
 # --- fzf Initialization ---
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 
-# --- zoxide Initialization ---
-eval "$(zoxide init bash)"
-
 # --- Starship Prompt ---
 eval "$(starship init bash)"
+
+# --- zoxide Initialization ---
+eval "$(zoxide init bash)"
