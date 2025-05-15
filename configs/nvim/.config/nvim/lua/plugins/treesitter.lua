@@ -28,7 +28,6 @@ return {
         "javascript",
         "typescript",
         "tsx",
-        "jsx",
         "python",
         "yaml",
         "html",
