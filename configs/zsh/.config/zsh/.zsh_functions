@@ -1,0 +1,25 @@
+# ~/.config/zsh/.zsh_functions
+# ============================
+# Shell Functions
+# ============================
+
+# Make a directory and cd into it
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+
+# Update Zinit plugins and Starship
+update-env() {
+  echo "Updating Zinit plugins..."
+  zinit self-update && zinit update --all
+  echo "Updating Starship..."
+  if command -v starship &>/dev/null; then
+    starship upgrade
+  fi
+}
+
+# Reload the zsh config
+reload-zsh() {
+  source "$ZDOTDIR/.zshrc"
+  echo ".zshrc reloaded!"
+}

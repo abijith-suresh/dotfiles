@@ -1,0 +1,35 @@
+# ~/.config/zsh/.zsh_aliases
+# ============================
+# Shell Aliases
+# ============================
+
+# --- File Listing (eza) ---
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -lh --icons --git --group-directories-first'
+alias la='eza -lah --icons --git --group-directories-first'
+alias lt='eza --tree --icons --level=2'
+
+# --- Replacements ---
+alias grep='grep --color=auto'
+alias cat='bat'
+alias mkdir='mkdir -pv'
+alias cd='z'
+
+# --- Navigation ---
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# --- Shortcuts ---
+alias c='clear'
+alias v='nvim'
+alias please='sudo'
+alias :q='exit'
+
+# --- Git ---
+alias gs='git status'
+alias gco='git checkout'
+alias gl='git pull'
+alias gp='git push'
+alias ga='git add'
+alias gc='git commit -m'
+alias gb='git branch'
