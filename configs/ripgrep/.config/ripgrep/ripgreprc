@@ -1,0 +1,25 @@
+# ripgrep configuration
+# $XDG_CONFIG_HOME/ripgrep/ripgreprc
+
+# Case-insensitive search when pattern is all lowercase
+--smart-case
+
+# Search hidden files and directories
+--hidden
+
+# Follow symbolic links
+--follow
+
+# Exclude common non-source directories and lock files
+--glob=!.git/
+--glob=!node_modules/
+--glob=!dist/
+--glob=!build/
+--glob=!*.lock
+
+# Colors
+--colors=match:fg:yellow
+--colors=match:style:bold
+--colors=line:fg:green
+--colors=path:fg:cyan
+--colors=path:style:bold
