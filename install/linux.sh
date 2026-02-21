@@ -13,6 +13,7 @@ is_wsl() {
 packages=(
   bat
   btop
+  stow
   eza
   fastfetch
   fzf

@@ -1,0 +1,17 @@
+# Compiled zsh files
+*.zwc
+*.zwc.old
+
+# Neovim plugin lockfile (regenerated on install)
+configs/nvim/.config/nvim/lazy-lock.json
+
+# zsh history and completion cache
+configs/zsh/.config/zsh/.zsh_history
+configs/zsh/.config/zsh/.zcompdump*
+
+# Local override files (user-specific, not tracked)
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
