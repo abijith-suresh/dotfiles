@@ -16,7 +16,6 @@ packages=(
   stow
   eza
   fastfetch
-  fzf
   git
   htop
   neovim

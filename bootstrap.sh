@@ -115,6 +115,28 @@ if ! "$SKIP_PACKAGES"; then
   ok "Packages installed"
 fi
 
+# --- Step 1b: Install latest fzf from GitHub ---
+# apt ships a significantly outdated fzf that lacks --zsh shell integration
+# (added in v0.48). We always install the latest prebuilt binary to ~/.local/bin/
+# which takes precedence over /usr/bin/fzf from apt.
+step "Installing latest fzf"
+command -p mkdir -p "$HOME/.local/bin"
+fzf_latest=$(curl -fsSL https://api.github.com/repos/junegunn/fzf/releases/latest \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))" 2>/dev/null)
+if [ -z "$fzf_latest" ]; then
+  info "Could not fetch latest fzf version — skipping (will use apt version)"
+else
+  fzf_installed=$(fzf --version 2>/dev/null | cut -d' ' -f1)
+  if [ "$fzf_installed" = "$fzf_latest" ]; then
+    info "fzf $fzf_latest already installed"
+  else
+    info "Installing fzf $fzf_latest..."
+    run bash -c "curl -fsSL https://github.com/junegunn/fzf/releases/download/v${fzf_latest}/fzf-${fzf_latest}-linux_amd64.tar.gz \
+      | tar -xz -C \"$HOME/.local/bin\" fzf"
+    ok "fzf $fzf_latest installed to ~/.local/bin/fzf"
+  fi
+fi
+
 # --- Step 2: Install Zinit ---
 step "Installing Zinit"
 zinit_dir="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
