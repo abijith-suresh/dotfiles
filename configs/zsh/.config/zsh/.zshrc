@@ -1,4 +1,4 @@
-# ~/.zshrc
+# ~/.config/zsh/.zshrc
 # ============================
 # Zsh Configuration for Abijith
 # Organized, documented, and optimized for performance & usability.
@@ -20,16 +20,17 @@ setopt correct                # Auto-correct command names
 setopt nocaseglob             # Case-insensitive globbing
 
 # --- History Configuration ---
-HISTFILE=~/.zsh_history
+HISTFILE="${XDG_STATE_HOME}/zsh/history"
 HISTSIZE=10000
 SAVEHIST=10000
 
 # --- Zinit Plugin Manager ---
 # https://github.com/zdharma-continuum/zinit
-if [[ -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
-  source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
+ZINIT_HOME="${XDG_DATA_HOME}/zinit/zinit.git"
+if [[ -f "$ZINIT_HOME/zinit.zsh" ]]; then
+  source "$ZINIT_HOME/zinit.zsh"
 else
-  echo "Zinit not found. Please install it at ~/.local/share/zinit"
+  echo "Zinit not found. Please install it at $ZINIT_HOME"
 fi
 
 # --- Plugins ---
@@ -43,6 +44,9 @@ zinit light djui/alias-tips                     # Reminds you of defined aliases
 zinit wait lucid for \
   zdharma-continuum/fast-syntax-highlighting    # Faster highlighting
 
+# --- Docker Completions (via Zinit — avoids WSL vendor-completions breakage) ---
+zinit snippet "https://raw.githubusercontent.com/docker/cli/master/contrib/completion/zsh/_docker"
+
 # --- Initialize zoxide ---
 eval "$(zoxide init zsh)"
 
@@ -50,71 +54,27 @@ eval "$(zoxide init zsh)"
 # https://starship.rs/
 eval "$(starship init zsh)"
 
-# --- Aliases ---
-alias ls='eza --color=auto'   
-alias ll='eza -l --color=auto'
-alias la='eza -A --color=auto'
-alias grep='grep --color=auto'
-alias cat='bat'  
-alias mkdir='mkdir -pv'
-alias please='sudo'
-alias cd='z'
+# --- fzf ---
+export RIPGREP_CONFIG_PATH="$XDG_CONFIG_HOME/ripgrep/ripgreprc"
+[[ -f "$XDG_CONFIG_HOME/fzf/fzf.zsh" ]] && source "$XDG_CONFIG_HOME/fzf/fzf.zsh"
 
-# Git
-alias gs='git status'
-alias gco='git checkout'
-alias gl='git pull'
-alias gp='git push'
-alias ga='git add'
-alias gc='git commit -m'
-alias gb='git branch'
-
-# Directory shortcut aliases
-alias ..='cd ..'
-alias ...='cd ../..'
-alias c='clear'
-alias v='nvim'
-alias :q='exit'
-
-# --- Functions ---
-# Make directory and cd into it
-mkcd() {
-  mkdir -p "$1" && cd "$1"
-}
-
-# --- Update Function ---
-# Update Zinit plugins and Starship
-update-env() {
-  echo "Updating Zinit plugins..."
-  zinit self-update && zinit update --all
-  echo "Updating Starship..."
-  if command -v starship &>/dev/null; then
-    starship upgrade
-  fi
-}
-
-# Reload the .zshrc file
-reload-zsh() {
-  source ~/.zshrc
-  echo ".zshrc reloaded!"
-}
-
-# --- Source Local Overrides ---
-# Allows custom user additions without touching main config
-[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
-
-# --- End ---
-
+# --- NVM ---
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-# bun completions
-[ -s "/home/abijith/.bun/_bun" ] && source "/home/abijith/.bun/_bun"
-
-# bun
+# --- Bun ---
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-# opencode
-export PATH=/home/abijith/.opencode/bin:$PATH
+# --- opencode ---
+export PATH="$HOME/.opencode/bin:$PATH"
+
+# --- Source Aliases and Functions ---
+source "$ZDOTDIR/.zsh_aliases"
+source "$ZDOTDIR/.zsh_functions"
+
+# --- Source Local Overrides ---
+# Allows custom user additions without touching main config
+[[ -f "$ZDOTDIR/.zshrc.local" ]] && source "$ZDOTDIR/.zshrc.local"
