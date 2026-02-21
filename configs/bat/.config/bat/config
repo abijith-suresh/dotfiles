@@ -1,4 +1,4 @@
 --theme="Catppuccin Mocha"
 --style=numbers,changes,header-filename
 --italic-text=always
---pager=less -FR
+--pager="less -FR"
