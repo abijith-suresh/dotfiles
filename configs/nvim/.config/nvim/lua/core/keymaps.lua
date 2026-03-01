@@ -1,34 +1,124 @@
+-- Set leader key
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
-local map = vim.keymap.set
+-- For conciseness
+local opts = { noremap = true, silent = true }
 
--- Clear search highlights
-map("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
+-- Disable the spacebar key's default behavior in Normal and Visual modes
+vim.keymap.set({ "n", "v" }, "<Space>", "<Nop>", { silent = true })
 
--- Insert mode escape
-map("i", "jk", "<Esc>", { desc = "Exit insert mode" })
+-- Allow moving the cursor through wrapped lines with j, k
+vim.keymap.set("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
+vim.keymap.set("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
--- Increment / decrement numbers
-map("n", "<leader>+", "<C-a>", { desc = "Increment number" })
-map("n", "<leader>-", "<C-x>", { desc = "Decrement number" })
+-- Clear highlights
+vim.keymap.set("n", "<Esc>", ":noh<CR>", opts)
 
--- Window splits
-map("n", "<leader>sv", "<C-w>v", { desc = "Split vertically" })
-map("n", "<leader>sh", "<C-w>s", { desc = "Split horizontally" })
-map("n", "<leader>se", "<C-w>=", { desc = "Equal split sizes" })
-map("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close split" })
+-- Save file
+vim.keymap.set("n", "<C-s>", "<cmd> w <CR>", opts)
 
--- Telescope
-map("n", "<leader>ff", "<cmd>Telescope find_files<CR>", { desc = "Find files" })
-map("n", "<leader>fg", "<cmd>Telescope live_grep<CR>", { desc = "Live grep" })
-map("n", "<leader>fb", "<cmd>Telescope buffers<CR>", { desc = "Find buffers" })
-map("n", "<leader>fh", "<cmd>Telescope help_tags<CR>", { desc = "Help tags" })
+-- Save file without auto-formatting
+vim.keymap.set("n", "<leader>sn", "<cmd>noautocmd w <CR>", opts)
 
--- LSP (also set in lsp.lua on_attach, kept here for discoverability)
-map("n", "K", vim.lsp.buf.hover, { desc = "LSP hover" })
-map("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
-map("n", "gr", vim.lsp.buf.references, { desc = "Go to references" })
-map("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
-map("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename symbol" })
-map("n", "<leader>d", vim.diagnostic.open_float, { desc = "Show diagnostics" })
+-- Quit file
+vim.keymap.set("n", "<C-q>", "<cmd> q <CR>", opts)
+
+-- Delete single character without copying into register
+vim.keymap.set("n", "x", '"_x', opts)
+
+-- Vertical scroll and center
+vim.keymap.set("n", "<C-d>", "<C-d>zz", opts)
+vim.keymap.set("n", "<C-u>", "<C-u>zz", opts)
+
+-- Find and center
+vim.keymap.set("n", "n", "nzzzv")
+vim.keymap.set("n", "N", "Nzzzv")
+
+-- Resize with arrows
+vim.keymap.set("n", "<Up>", ":resize -2<CR>", opts)
+vim.keymap.set("n", "<Down>", ":resize +2<CR>", opts)
+vim.keymap.set("n", "<Left>", ":vertical resize -2<CR>", opts)
+vim.keymap.set("n", "<Right>", ":vertical resize +2<CR>", opts)
+
+-- Buffers
+vim.keymap.set("n", "<Tab>", ":bnext<CR>", opts)
+vim.keymap.set("n", "<S-Tab>", ":bprevious<CR>", opts)
+vim.keymap.set("n", "<C-i>", "<C-i>", opts)
+vim.keymap.set("n", "<leader>x", ":Bdelete!<CR>", opts)
+vim.keymap.set("n", "<leader>b", "<cmd> enew <CR>", opts)
+
+-- Increment/decrement numbers
+vim.keymap.set("n", "<leader>+", "<C-a>", opts)
+vim.keymap.set("n", "<leader>-", "<C-x>", opts)
+
+-- Window management
+vim.keymap.set("n", "<leader>v", "<C-w>v", opts)
+vim.keymap.set("n", "<leader>h", "<C-w>s", opts)
+vim.keymap.set("n", "<leader>se", "<C-w>=", opts)
+vim.keymap.set("n", "<leader>xs", ":close<CR>", opts)
+
+-- Navigate between splits
+vim.keymap.set("n", "<C-k>", ":wincmd k<CR>", opts)
+vim.keymap.set("n", "<C-j>", ":wincmd j<CR>", opts)
+vim.keymap.set("n", "<C-h>", ":wincmd h<CR>", opts)
+vim.keymap.set("n", "<C-l>", ":wincmd l<CR>", opts)
+
+-- Tabs
+vim.keymap.set("n", "<leader>to", ":tabnew<CR>", opts)
+vim.keymap.set("n", "<leader>tx", ":tabclose<CR>", opts)
+vim.keymap.set("n", "<leader>tn", ":tabn<CR>", opts)
+vim.keymap.set("n", "<leader>tp", ":tabp<CR>", opts)
+
+-- Toggle line wrapping
+vim.keymap.set("n", "<leader>lw", "<cmd>set wrap!<CR>", opts)
+
+-- Press jk fast to exit insert mode
+vim.keymap.set("i", "jk", "<ESC>", opts)
+vim.keymap.set("i", "kj", "<ESC>", opts)
+
+-- Stay in indent mode
+vim.keymap.set("v", "<", "<gv", opts)
+vim.keymap.set("v", ">", ">gv", opts)
+
+-- Move text up and down
+vim.keymap.set("v", "<A-j>", ":m .+1<CR>==", opts)
+vim.keymap.set("v", "<A-k>", ":m .-2<CR>==", opts)
+
+-- Keep last yanked when pasting
+vim.keymap.set("v", "p", '"_dP', opts)
+
+-- Replace word under cursor
+vim.keymap.set("n", "<leader>j", "*``cgn", opts)
+
+-- Explicitly yank to system clipboard
+vim.keymap.set({ "n", "v" }, "<leader>y", [["+y]])
+vim.keymap.set("n", "<leader>Y", [["+Y]])
+
+-- Toggle diagnostics
+local diagnostics_active = true
+
+vim.keymap.set("n", "<leader>do", function()
+  diagnostics_active = not diagnostics_active
+  if diagnostics_active then
+    vim.diagnostic.enable(true)
+  else
+    vim.diagnostic.enable(false)
+  end
+end)
+
+-- Diagnostic keymaps
+vim.keymap.set("n", "[d", function()
+  vim.diagnostic.jump({ count = -1, float = true })
+end, { desc = "Go to previous diagnostic message" })
+
+vim.keymap.set("n", "]d", function()
+  vim.diagnostic.jump({ count = 1, float = true })
+end, { desc = "Go to next diagnostic message" })
+
+vim.keymap.set("n", "<leader>d", vim.diagnostic.open_float, { desc = "Open floating diagnostic message" })
+vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist, { desc = "Open diagnostics list" })
+
+-- Save and load session
+vim.keymap.set("n", "<leader>ss", ":mksession! .session.vim<CR>", { noremap = true, silent = false })
+vim.keymap.set("n", "<leader>sl", ":source .session.vim<CR>", { noremap = true, silent = false })

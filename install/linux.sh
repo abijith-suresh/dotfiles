@@ -74,4 +74,24 @@ echo "Running full upgrade..."
 sudo apt upgrade -y
 
 echo ""
+echo "Installing catppuccin theme for Vim..."
+if [ ! -d "$HOME/.vim/pack/vendor/start/catppuccin" ]; then
+  mkdir -p ~/.vim/pack/vendor/start
+  git clone https://github.com/catppuccin/vim.git ~/.vim/pack/vendor/start/catppuccin
+  echo "  catppuccin/vim installed."
+else
+  echo "  catppuccin/vim already installed."
+fi
+
+echo ""
+echo "Installing Tmux Plugin Manager (TPM)..."
+if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
+  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+  echo "  TPM installed."
+  echo "  Note: Press 'Prefix + I' in tmux to install plugins."
+else
+  echo "  TPM already installed."
+fi
+
+echo ""
 echo "All done!"
