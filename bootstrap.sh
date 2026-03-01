@@ -179,18 +179,6 @@ for pkg in "${packages[@]}"; do
 done
 cd "$DOTFILES_DIR"
 
-# --- Step 4b: Stow agent skills ---
-step "Stowing agent skills"
-cd "$CONFIGS_DIR/agents"
-run stow --restow shared
-ok "Stowed agents/shared (~/.agents/)"
-cd "$DOTFILES_DIR"
-
-# --- Step 4c: Wire per-tool skills/ symlinks ---
-step "Setting up per-tool skills symlinks"
-run bash "$DOTFILES_DIR/scripts/setup-agents.sh"
-ok "Skills symlinks configured"
-
 # --- Step 5: Set default shell to zsh ---
 step "Checking default shell"
 if [[ "$SHELL" != "$(which zsh)" ]]; then

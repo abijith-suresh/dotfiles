@@ -12,9 +12,6 @@ configs/zsh/.config/zsh/.zcompdump*
 # Local override files (user-specific, not tracked)
 *.local
 
-# Agent skills — runtime metadata (updated by skills CLI on install/update)
-configs/agents/shared/.agents/.skill-lock.json
-
 # OS
 .DS_Store
 Thumbs.db
