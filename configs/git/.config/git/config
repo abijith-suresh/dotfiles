@@ -45,9 +45,13 @@
 	default = current
 	followTags = true
 	gpgSign = false
+	force = lease
 
 [pull]
 	rebase = true
+
+[fetch]
+	prune = true
 
 [rebase]
     autoStash = true
