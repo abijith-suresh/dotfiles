@@ -75,6 +75,10 @@ export PATH="$HOME/.opencode/bin:$PATH"
 source "$ZDOTDIR/.zsh_aliases"
 source "$ZDOTDIR/.zsh_functions"
 
+# --- SDKMAN (Java version manager) ---
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
+
 # --- Source Local Overrides ---
 # Allows custom user additions without touching main config
 [[ -f "$ZDOTDIR/.zshrc.local" ]] && source "$ZDOTDIR/.zshrc.local"

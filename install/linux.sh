@@ -95,4 +95,32 @@ else
 fi
 
 echo ""
+echo "Installing SDKMAN (Java version manager)..."
+
+if [ -d "$HOME/.sdkman" ]; then
+  echo "  SDKMAN already installed."
+else
+  echo "  Installing SDKMAN..."
+  curl -s "https://get.sdkman.io?rcupdate=false" | bash
+  echo "  SDKMAN installed."
+fi
+
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
+
+echo ""
+echo "Checking Java installation..."
+
+if [ -d "$HOME/.sdkman/candidates/java/21.0.6-tem" ]; then
+  echo "  Java 21.0.6-tem already installed."
+else
+  echo "  Installing Java 21.0.6-tem (Eclipse Temurin)..."
+  sdk install java 21.0.6-tem
+  echo "  Java 21.0.6-tem installed."
+fi
+
+sdk default java 21.0.6-tem
+echo "  Java 21.0.6-tem set as default."
+
+echo ""
 echo "All done!"
