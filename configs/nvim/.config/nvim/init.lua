@@ -1,5 +1,6 @@
 require("core.options")
 require("core.keymaps")
+require("core.snippets")
 
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -41,6 +42,10 @@ require("lazy").setup({
   require("plugins.vim-tmux-navigator"),
   require("plugins.which-key"),
   require("plugins.misc"),
+  require("plugins.harpoon"),
+  require("plugins.lazygit"),
+  require("plugins.render-markdown"),
+  require("plugins.bufferline"),
 }, {
   ui = {
     icons = vim.g.have_nerd_font and {} or {
