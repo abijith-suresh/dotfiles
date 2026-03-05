@@ -18,6 +18,7 @@ packages=(
   fastfetch
   git
   htop
+  jq
   neovim
   ripgrep
   tmux
