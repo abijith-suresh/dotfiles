@@ -3,10 +3,52 @@
 # Ubuntu/Debian package installer (WSL and native Linux)
 
 set -e
+set -o pipefail
 
 # --- Detect WSL vs native Linux ---
 is_wsl() {
   grep -qi microsoft /proc/version 2>/dev/null
+}
+
+# --- NVM and Node.js ---
+install_nvm() {
+  export NVM_DIR="$HOME/.nvm"
+
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    echo "  NVM already installed."
+  else
+    echo "  Installing NVM..."
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh \
+      | PROFILE=/dev/null NVM_DIR="$NVM_DIR" bash
+    echo "  NVM installed."
+  fi
+
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    . "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+  else
+    echo "  Failed to load NVM after installation."
+    exit 1
+  fi
+}
+
+install_node_lts() {
+  local node_lts_version
+  node_lts_version="$(nvm version --lts 2>/dev/null || true)"
+
+  if [ -n "$node_lts_version" ] && [ "$node_lts_version" != "N/A" ]; then
+    echo "  Node.js LTS already installed: $node_lts_version"
+  else
+    echo "  Installing latest Node.js LTS..."
+    nvm install --lts
+    echo "  Node.js LTS installed."
+  fi
+
+  echo "  Setting default Node.js to LTS..."
+  nvm alias default 'lts/*' >/dev/null
+  nvm use --lts >/dev/null
+  echo "  Using Node.js $(node --version) and npm $(npm --version)."
 }
 
 # --- Package list ---
@@ -14,6 +56,7 @@ packages=(
   bat
   btop
   cloc
+  curl
   stow
   eza
   fastfetch
@@ -74,6 +117,14 @@ fi
 echo ""
 echo "Running full upgrade..."
 sudo apt upgrade -y
+
+echo ""
+echo "Installing NVM..."
+install_nvm
+
+echo ""
+echo "Installing Node.js LTS..."
+install_node_lts
 
 echo ""
 echo "Installing catppuccin theme for Vim..."
