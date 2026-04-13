@@ -10,11 +10,13 @@ CONFIGS_DIR="$DOTFILES_DIR/configs"
 # --- Flags ---
 DRY_RUN=false
 SKIP_PACKAGES=false
+INSTALL_AGENTS=false
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --skip-packages) SKIP_PACKAGES=true ;;
+    --install-agents) INSTALL_AGENTS=true ;;
   esac
 done
 
@@ -100,6 +102,9 @@ fi
 if "$SKIP_PACKAGES"; then
   info "Mode: --skip-packages (skipping package installation)"
 fi
+if "$INSTALL_AGENTS"; then
+  info "Mode: --install-agents (will install coding agents)"
+fi
 
 echo ""
 read -rp "Proceed with setup? [y/N] " confirm
@@ -115,7 +120,14 @@ if ! "$SKIP_PACKAGES"; then
   ok "Packages installed"
 fi
 
-# --- Step 1b: Install latest fzf from GitHub ---
+# --- Step 1b: Install coding agents (optional) ---
+if "$INSTALL_AGENTS"; then
+  step "Installing coding agents"
+  run bash "$DOTFILES_DIR/install/agents.sh"
+  ok "Coding agents installed"
+fi
+
+# --- Step 1c: Install latest fzf from GitHub ---
 # apt ships a significantly outdated fzf that lacks --zsh shell integration
 # (added in v0.48). We always install the latest prebuilt binary to ~/.local/bin/
 # which takes precedence over /usr/bin/fzf from apt.
