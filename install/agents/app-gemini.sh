@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if command -v gemini >/dev/null 2>&1; then
-  echo "gemini already installed"
-  exit 0
-fi
+install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm is required to install gemini"
-  exit 1
-fi
+# shellcheck disable=SC1091
+source "$install_dir/lib/common.sh"
+# shellcheck disable=SC1091
+source "$install_dir/lib/mise.sh"
 
-npm install -g @google/gemini-cli
+install_node_cli "@google/gemini-cli" gemini

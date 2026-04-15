@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if command -v claude >/dev/null 2>&1; then
-  echo "claude already installed"
-  exit 0
-fi
+install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 
-curl -fsSL https://claude.ai/install.sh | bash
+# shellcheck disable=SC1091
+source "$install_dir/lib/common.sh"
+# shellcheck disable=SC1091
+source "$install_dir/lib/mise.sh"
+
+install_node_cli "@anthropic-ai/claude-code" claude

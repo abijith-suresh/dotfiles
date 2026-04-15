@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if command -v pi >/dev/null 2>&1; then
-  echo "pi already installed"
-  exit 0
-fi
+install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm is required to install pi"
-  exit 1
-fi
+# shellcheck disable=SC1091
+source "$install_dir/lib/common.sh"
+# shellcheck disable=SC1091
+source "$install_dir/lib/mise.sh"
 
-npm install -g @mariozechner/pi-coding-agent
+install_node_cli "@mariozechner/pi-coding-agent" pi

@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if command -v codex >/dev/null 2>&1; then
-  echo "codex already installed"
-  exit 0
-fi
+install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm is required to install codex"
-  exit 1
-fi
+# shellcheck disable=SC1091
+source "$install_dir/lib/common.sh"
+# shellcheck disable=SC1091
+source "$install_dir/lib/mise.sh"
 
-npm install -g @openai/codex
+install_node_cli "@openai/codex" codex
