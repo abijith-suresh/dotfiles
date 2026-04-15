@@ -1,7 +1,7 @@
 // Zellij configuration
 // Theme set by dotfiles theme switcher
 
-theme "catppuccin-mocha"
+theme "current"
 default_layout "compact"
 on_force_close "quit"
 

@@ -44,6 +44,7 @@ done
 
 step "Stowing config packages"
 stow_packages "$dotfiles_dir" \
+  alacritty \
   bash \
   bat \
   bin \
