@@ -1,25 +1,21 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
 # Compiled zsh files
 *.zwc
 *.zwc.old
 
-# Neovim plugin lockfile (regenerated on install)
+# Runtime / cache files inside tracked config trees
 configs/nvim/.config/nvim/lazy-lock.json
-
-# zsh history and completion cache
+configs/tmux/.config/tmux/plugins/
 configs/zsh/.config/zsh/.zsh_history
 configs/zsh/.config/zsh/.zcompdump*
 
-# Local override files (user-specific, not tracked)
-*.local
+# Explicit local override files
+configs/zsh/.config/zsh/*.local
+configs/bash/*.local
+configs/git/.config/git/*.local
 
-# But do track the stow package for ~/.local/bin
-!configs/bin/.local/
-!configs/bin/.local/bin/
-!configs/bin/.local/bin/dotfiles
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Dotfiles-managed backup files created during migrations/tests
+# Dotfiles-managed backups created during migrations/tests
 *.pre-dotfiles-backup

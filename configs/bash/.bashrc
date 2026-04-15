@@ -44,7 +44,6 @@ alias gl='git pull'
 # Tools
 alias lzg='lazygit'
 alias lzd='lazydocker'
-alias n='nvim'
 
 # --- Functions ---
 # Open nvim with current dir if no args

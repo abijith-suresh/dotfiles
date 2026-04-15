@@ -1,117 +1,117 @@
 # AGENTS.md - Dotfiles Repository Guide
 
-This guide is for agentic coding assistants working in this personal dotfiles repository. It covers installation scripts, code style conventions, and repository structure.
+This repository is a GNU Stow-based dotfiles system with repo-backed theme state and a modular install architecture.
 
-## Repository Overview
+## Core rules
 
-Personal dotfiles repository managed with GNU Stow. Contains configuration files for shell environments, editors, terminal tools, and development utilities.
+1. **`configs/` is the source of truth for deployed configuration**
+   - If a file should exist on the machine via Stow, its authoritative source lives in `configs/`.
 
-**Primary Purpose**: Manage and version control personal configuration files across multiple machines and operating systems.
+2. **`themes/` contains theme source assets, not deployed config**
+   - `themes/<theme>/...` are inputs
+   - `scripts/theme.sh` writes the active outputs into `configs/`
+   - `themes/current-theme` stores the selected theme name
 
-## Directory Structure
+3. **Do not reintroduce machine-only theme writes as the primary mechanism**
+   - Theme switching should update repo-backed config first, then re-stow.
 
-```
+4. **Install architecture is layered**
+   - `install/bootstrap/` → minimal host bootstrap
+   - `install/lib/` → shared helpers
+   - `install/profiles/` → orchestrated setup flows
+   - `install/tools/` → per-tool installers
+   - `install/agents/` → per-agent installers
+   - `install/languages/` → per-language installers
+
+## Directory map
+
+```text
 dotfiles/
-├── install.sh          # Entry point — minimal bootstrap
-├── configs/            # All configuration files (GNU Stow packages)
-│   ├── bin/            # dotfiles CLI → ~/.local/bin/dotfiles
-│   ├── zsh/            # Zsh shell (primary)
-│   ├── bash/           # Bash shell (fallback)
-│   ├── nvim/           # Neovim (LazyVim)
-│   ├── vim/            # Vim (fallback)
-│   ├── tmux/           # tmux
-│   ├── zellij/         # Zellij
-│   ├── git/            # Git config
-│   ├── starship/       # Prompt
-│   ├── bat/            # bat
-│   ├── btop/           # System monitor
-│   ├── fastfetch/      # System info
-│   ├── fzf/            # Fuzzy finder
-│   └── ripgrep/        # Search
+├── install.sh                 # minimal bootstrap entrypoint
+├── configs/                   # stow packages
 ├── install/
-│   ├── linux.sh        # System package update
-│   └── terminal/       # Per-tool install scripts
-│       ├── required/   # gum (UI dependency)
-│       └── app-*.sh    # Idempotent per-tool installers
+│   ├── bootstrap/
+│   ├── lib/
+│   ├── profiles/
+│   ├── tools/
+│   ├── agents/
+│   └── languages/
 ├── scripts/
-│   ├── theme.sh        # Theme switcher
-│   └── update.sh       # Update delegation
-└── themes/             # 10 color themes
-    └── <theme>/
-        ├── zellij.kdl, btop.theme, neovim.lua
-        ├── starship.toml, alacritty.toml
+│   ├── theme.sh
+│   ├── update.sh
+│   └── generate-starship-themes.sh
+├── themes/
+│   ├── current-theme
+│   └── <theme>/
+└── README.md / AGENTS.md / PLAN.md
 ```
 
-## Installation & Setup
+## What is generated vs hand-maintained
 
-### First-time setup
-```bash
-./install.sh                    # Full interactive setup
-./install.sh --dry-run          # Preview without changes
-./install.sh --skip-packages    # Stow only, no apt
-```
+### Hand-maintained
+- Most files under `configs/`
+- Install scripts under `install/`
+- Theme source assets under `themes/<theme>/`
 
-### Per-tool scripts
-Each `install/terminal/app-*.sh` is:
-- Self-contained and idempotent
-- Can be run independently: `bash install/terminal/app-zellij.sh`
-- Sourced in a loop by `install.sh`
+### Generated / rewritten by theme switching
+These are still repo-backed and tracked, but are updated by `scripts/theme.sh`:
+- `configs/starship/.config/starship.toml`
+- `configs/nvim/.config/nvim/lua/plugins/theme.lua`
+- `configs/btop/.config/btop/themes/current.theme`
+- `configs/zellij/.config/zellij/themes/current.kdl`
+- `configs/alacritty/.config/alacritty/theme.toml`
+- `themes/current-theme`
 
-### Stow commands
-```bash
-cd configs
-stow <package_name>      # Deploy
-stow -D <package_name>   # Remove
-stow -n -v <package>     # Dry-run preview
-stow --restow <package>  # Re-link
-```
+## Shell / script conventions
 
-### The dotfiles CLI
-```bash
-dotfiles              # Interactive menu (requires gum)
-dotfiles theme        # Switch themes
-dotfiles update       # Update everything
-dotfiles install      # Install additional tools
-```
+- Use `#!/usr/bin/env bash` for scripts unless there is a strong reason not to
+- Prefer `set -euo pipefail`
+- Keep scripts idempotent where possible
+- Centralize shared helpers in `install/lib/`
+- Prefer one responsibility per script
+- Use clear section comments only when helpful; avoid noise
 
-## Code Style Guidelines
+## Stow conventions
 
-### Shell Scripts (Bash/Zsh)
+- `configs/.stowrc` sets target `~`
+- Stow packages should map cleanly onto XDG locations whenever possible
+- Do not create hidden one-off deployment paths outside `configs/`
+- If a tool is part of the managed system, prefer a Stow package over ad hoc copying
 
-- **Shebang**: `#!/bin/bash` or `#!/usr/bin/env bash`
-- **Error handling**: `set -e` at start for critical scripts
-- **Indentation**: 2 spaces
-- **Variables**: lowercase, quoted: `"$variable"`
-- **Lists**: arrays: `packages=(bat btop eza)`
-- **Comments**: `# ---` for section headers
-- **Idempotent**: install scripts should be safe to re-run
+## Theme system conventions
 
-### Lua (Neovim Config)
+- Adding a new theme means adding a complete directory under `themes/<name>/`
+- Keep theme directory contents consistent across themes
+- If a new themed tool is added, theme switching must remain repo-backed
+- Do not hardcode a theme in configs when it should be generated from the active theme
 
-- 2 spaces indentation
-- One plugin per file in `lua/plugins/`
-- Use `vim.opt` for options, `vim.keymap` for keymaps
+## Install flow conventions
 
-## Key Tools
+- `install.sh` should stay minimal
+- The long-running setup flow belongs in `dotfiles install` / `install/profiles/`
+- Per-tool installers should live in `install/tools/app-*.sh`
+- Per-agent installers should live in `install/agents/app-*.sh`
+- Per-language installers should live in `install/languages/app-*.sh`
 
-- **Shell**: zsh (Zinit) + bash fallback
-- **Prompt**: Starship
-- **Version manager**: mise (replaces NVM, SDKMAN)
-- **Multiplexer**: tmux + zellij
-- **Editor**: Neovim (LazyVim) + vim fallback
-- **Theme system**: 10 themes, switched via `dotfiles theme`
+## Important constraints
 
-## Important Notes for Agents
+- Never overwrite user-specific git identity without explicit instruction
+- Keep future distro/OS support in mind when introducing assumptions
+- Avoid broad `.gitignore` patterns that hide legitimate tracked files
+- Prefer explicit paths and explicit ownership of generated files
 
-1. **Never modify user-specific data** in .gitconfig (name, email)
-2. **Preserve exact indentation** when editing config files
-3. **Keep shell startup fast** — avoid expensive operations in .bashrc/.zshrc
-4. **Maintain GNU Stow compatibility** — proper directory structure in configs/
-5. **Theme files are in themes/** — don't hardcode colors in stowed configs
-6. **Install scripts must be idempotent** — safe to run multiple times
-7. **The dotfiles CLI depends on gum** — don't require gum in configs themselves
+## Testing expectations for agents
 
----
+Before finishing a substantial change, try to validate with:
+- `bash -n` on all changed shell scripts
+- `zsh -n` on zsh config changes
+- `stow -n -v <package>` where relevant
+- non-interactive command checks for `dotfiles`, `theme.sh`, and install/profile entrypoints
 
-**Last Updated**: 2026-04-15
-**Maintained by**: Abijith Suresh
+## Current architecture intent
+
+This repo is moving toward:
+- one user-facing command: `dotfiles`
+- repo-backed active theme state
+- modular, extensible install logic
+- clean future extension for Arch, Fedora, macOS, and desktop Linux variants

@@ -11,6 +11,8 @@ CURRENT_THEME_FILE="$THEMES_DIR/current-theme"
 
 # shellcheck disable=SC1091
 source "$DOTFILES_DIR/install/lib/ui.sh"
+# shellcheck disable=SC1091
+source "$DOTFILES_DIR/install/lib/stow.sh"
 
 THEME_NAMES=("Catppuccin" "Tokyo Night" "Nord" "Gruvbox" "Everforest" "Kanagawa" "Rose Pine" "Matte Black" "Osaka Jade" "Ristretto")
 
@@ -48,11 +50,11 @@ restow_theme_packages() {
 
   (
     cd "$DOTFILES_DIR/configs"
-    stow --restow starship
-    stow --restow nvim
-    stow --restow btop
-    stow --restow zellij
-    stow --restow alacritty
+    stow_restow starship
+    stow_restow nvim
+    stow_restow btop
+    stow_restow zellij
+    stow_restow alacritty
   )
 }
 

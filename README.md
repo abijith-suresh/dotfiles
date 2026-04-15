@@ -1,19 +1,7 @@
 # Dotfiles
 
 Personal dotfiles for WSL Ubuntu and native Ubuntu/Debian Linux.
-Managed with [GNU Stow](https://www.gnu.org/software/stow/) for symlink management.
-
----
-
-## Table of Contents
-
-- [Quick Start](#quick-start)
-- [The `dotfiles` Command](#the-dotfiles-command)
-- [Themes](#themes)
-- [Structure](#structure)
-- [Config Details](#config-details)
-- [Supported Platforms](#supported-platforms)
-- [Troubleshooting](#troubleshooting)
+Managed with [GNU Stow](https://www.gnu.org/software/stow/) and organized around one primary command: `dotfiles`.
 
 ---
 
@@ -25,169 +13,230 @@ cd ~/.dotfiles
 ./install.sh
 ```
 
-The installer will:
-1. Update system packages via apt
-2. Install core CLI tools (bat, eza, fzf, ripgrep, zoxide, etc.)
-3. Install terminal tools (zsh + zinit, tmux, zellij, nvim, mise, etc.)
-4. Optionally install coding agents (pi, claude, codex, gemini, opencode)
-5. Optionally set up programming languages via mise
-6. Stow all config files
-7. Apply the default theme (catppuccin)
+### Install flow on a fresh system
 
-**Flags:**
-```bash
-./install.sh --dry-run        # Preview steps without making changes
-./install.sh --skip-packages  # Skip apt install, stow only
-```
+`install.sh` is intentionally small.
+
+It does only enough to bootstrap the real workflow:
+1. Detect platform (`wsl` or `linux`)
+2. Install minimal prerequisites (`git`, `curl`, `wget`, `jq`, `stow`, `gum`)
+3. Hand off to `dotfiles install --profile <platform>`
+
+After that, the real setup is handled by the `dotfiles` CLI and the scripts under `install/`.
 
 ---
 
-## The `dotfiles` Command
+## The `dotfiles` command
 
-After installation, the `dotfiles` CLI is available in your PATH:
+Once installed, the main workflow is:
 
 ```bash
 dotfiles              # Interactive menu
-dotfiles theme        # Switch themes (gum-powered)
-dotfiles update       # Update system, plugins, tools
-dotfiles install      # Install additional tools/languages
+dotfiles install      # Full setup, languages, or coding agents
+dotfiles theme        # Switch the active theme
+dotfiles update       # Update system and managed tools
 ```
+
+This is the preferred interface after the first bootstrap.
 
 ---
 
 ## Themes
 
-10 curated themes with consistent colors across all tools:
+Themes are **repo-backed**, not just machine-local.
 
-| Theme | Description |
-|---|---|
-| Catppuccin | Warm pastel palette (default) |
-| Tokyo Night | Dark blue-tinted |
-| Nord | Arctic blue palette |
-| Gruvbox | Warm retro colors |
-| Everforest | Soft green nature tones |
-| Kanagawa | Japanese-inspired indigo |
-| Rose Pine | Soft pink/purple |
-| Matte Black | Neutral dark |
-| Osaka Jade | Teal-green tones |
-| Ristretto | Warm espresso browns |
-
-Each theme applies to: zellij, btop, neovim, starship, and alacritty.
+When you run:
 
 ```bash
-dotfiles theme            # Interactive selection
-dotfiles theme catppuccin # Direct switch
+dotfiles theme tokyo-night
 ```
+
+it updates:
+- `themes/current-theme`
+- tracked config outputs inside `configs/`
+- then re-stows the affected packages
+
+So the repo remains the source of truth for the active theme.
+
+### Themed tools
+
+Themes currently apply to:
+- `starship`
+- `neovim`
+- `btop`
+- `zellij`
+- `alacritty`
+
+### Available themes
+
+- catppuccin
+- tokyo-night
+- nord
+- gruvbox
+- everforest
+- kanagawa
+- rose-pine
+- matte-black
+- osaka-jade
+- ristretto
 
 ---
 
-## Structure
+## Repository structure
 
-```
+```text
 dotfiles/
-├── install.sh            # Entry point — run this first
-├── configs/              # Config files organized by app (GNU Stow packages)
-│   ├── bash/             # Bash shell
-│   ├── bat/              # bat (cat replacement)
-│   ├── bin/              # dotfiles CLI
-│   ├── btop/             # System monitor
-│   ├── fastfetch/        # System info display
-│   ├── fzf/              # fzf fuzzy finder
-│   ├── git/              # Git (XDG: ~/.config/git/)
-│   ├── nvim/             # Neovim
-│   ├── ripgrep/          # ripgrep
-│   ├── starship/         # Starship prompt
-│   ├── tmux/             # tmux multiplexer
-│   ├── vim/              # Vim fallback
-│   ├── zellij/           # Zellij multiplexer
-│   └── zsh/              # Zsh (XDG: ~/.config/zsh/)
+├── install.sh                 # Minimal bootstrap entrypoint
+├── configs/                   # GNU Stow packages (source of truth for deployed config)
+│   ├── alacritty/
+│   ├── bash/
+│   ├── bat/
+│   ├── bin/                   # ~/.local/bin/dotfiles
+│   ├── btop/
+│   ├── fastfetch/
+│   ├── fzf/
+│   ├── git/
+│   ├── nvim/
+│   ├── ripgrep/
+│   ├── starship/
+│   ├── tmux/
+│   ├── vim/
+│   ├── zellij/
+│   └── zsh/
 ├── install/
-│   ├── linux.sh          # System package update
-│   └── terminal/         # Per-tool install scripts
-│       ├── required/     # gum (needed for UI)
-│       ├── app-*.sh      # Individual tool installers
-│       ├── agents.sh     # Coding agent installer
-│       └── select-language.sh
+│   ├── bootstrap/             # Minimal host bootstrapping
+│   ├── lib/                   # Shared helpers
+│   ├── profiles/              # Orchestrated install flows
+│   ├── tools/                 # Per-tool installers
+│   ├── agents/                # Per-agent installers
+│   └── languages/             # Per-language installers + selector
 ├── scripts/
-│   ├── theme.sh          # Theme switcher
-│   ├── update.sh         # Update delegation
+│   ├── theme.sh               # Repo-backed theme application
+│   ├── update.sh              # Delegates to dotfiles update
 │   └── generate-starship-themes.sh
-├── themes/               # 10 color themes
-│   └── <theme>/
-│       ├── zellij.kdl
-│       ├── btop.theme
-│       ├── neovim.lua
-│       ├── starship.toml
-│       └── alacritty.toml
-└── wallpapers/
+├── themes/
+│   ├── current-theme          # Active theme state
+│   └── <theme>/               # Theme source assets
+├── README.md
+├── AGENTS.md
+└── PLAN.md                    # Local planning reference (not required in commits)
 ```
 
 ---
 
-## Config Details
+## Tooling defaults
 
-All configs follow the [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) standard.
+### Shell
+- Primary shell: `zsh`
+- Bash fallback config is also maintained
+- Prompt: `starship`
+- Plugin manager: `zinit`
+- Runtime/version manager: `mise`
 
-### Shell (zsh)
-
-- Entry point: `~/.zshenv` → sets `ZDOTDIR=$HOME/.config/zsh` and XDG vars
-- Main config: `~/.config/zsh/.zshrc`
-- Aliases: `~/.config/zsh/.zsh_aliases` (minimal set — use lazygit for complex git)
-- Functions: `~/.config/zsh/.zsh_functions`
-- Plugin manager: [Zinit](https://github.com/zdharma-continuum/zinit)
-- Prompt: [Starship](https://starship.rs/)
-
-### Language Management (mise)
-
-[mise](https://mise.jdx.dev/) replaces NVM, SDKMAN, and other version managers:
-```bash
-mise use --global node@lts    # Install Node.js LTS
-mise use --global java@latest # Install Java
-mise use --global python@latest
-mise ls                       # List installed tools
-```
+### Terminal tools
+- Search: `ripgrep`
+- Fuzzy finder: `fzf`
+- File finder: `fd`
+- File listing: `eza`
+- System info: `fastfetch`
+- System monitor: `btop`
+- Git TUI: `lazygit`
+- Docker TUI: `lazydocker`
+- GitHub CLI: `gh`
 
 ### Multiplexers
-
-- **tmux** — configured with TPM, Catppuccin theme, vim-style keybindings
-- **Zellij** — modern alternative, locked-mode vim-style keybindings
-
-### Git
-
-- Config: `~/.config/git/config`
-- Global ignore: `~/.config/git/ignore`
+- `tmux` (kept)
+- `zellij` (added from omakub-inspired direction)
 
 ---
 
-## Supported Platforms
+## Language management
 
-| Platform | Status |
-|---|---|
-| Ubuntu (WSL) | ✅ Supported |
-| Ubuntu / Debian (native) | ✅ Supported |
-| macOS | 🔜 Planned |
-| Fedora | 🔜 Planned |
-| Arch Linux | 🔜 Planned |
+`mise` is the single version manager.
+
+Examples:
+
+```bash
+mise use --global node@lts
+mise use --global java@latest
+mise use --global python@latest
+mise use --global go@latest
+```
+
+The interactive installer can also set these up for you via:
+
+```bash
+dotfiles install
+```
+
+---
+
+## Coding agents
+
+Coding agents are split into per-agent installers under `install/agents/`.
+
+Available installers include:
+- pi
+- claude
+- codex
+- gemini
+- copilot
+- opencode
+
+You can install all or selected ones through:
+
+```bash
+dotfiles install
+```
+
+---
+
+## Extending to new distros / OSes
+
+The repo is structured so future platform work is additive:
+
+- `install/bootstrap/` for package-manager-level bootstrapping
+- `install/profiles/` for platform orchestration
+- `install/tools/`, `install/agents/`, `install/languages/` for reusable installers
+
+Planned future targets:
+- Arch Linux
+- Fedora
+- macOS
 
 ---
 
 ## Troubleshooting
 
-### WSL: `compinit: no such file or directory: /usr/share/zsh/vendor-completions/_docker`
+### WSL Docker completion bug
 
-Docker Desktop's WSL integration can leave broken symlinks. Fixed automatically by `install.sh`.
-
-```bash
-sudo rm -f /usr/share/zsh/vendor-completions/_docker
-rm -f ~/.zcompdump*
-```
+Broken Docker completion symlinks under WSL can interfere with zsh startup.
+The WSL install profile removes the common broken file and clears `.zcompdump*`.
 
 ### Stow conflicts
 
-If stow reports conflicts with existing config files:
+If you already have unmanaged config files, Stow may report conflicts.
+Back them up, remove them, and restow the affected package.
+
+Example:
 
 ```bash
-# Back up existing file, then stow
-mv ~/.config/btop/btop.conf ~/.config/btop/btop.conf.bak
-cd ~/.dotfiles/configs && stow btop
+mv ~/.config/btop/btop.conf ~/.config/btop/btop.conf.backup
+cd ~/.dotfiles/configs
+stow --restow btop
 ```
+
+### Theme switching and backups
+
+If `dotfiles theme` encounters unmanaged files for theme-managed targets,
+it may back them up as `*.pre-dotfiles-backup` before re-stowing.
+
+---
+
+## Philosophy
+
+- one primary workflow: `dotfiles`
+- repo-backed state instead of hidden machine-only state
+- GNU Stow as the deployment model
+- modular install scripts
+- easy future extension to other distros and operating systems
