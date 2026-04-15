@@ -72,29 +72,20 @@ cmd_update() {
   echo "Update complete."
 }
 
-install_agents_menu() {
-  if ! command -v gum >/dev/null 2>&1; then
-    bash "$INSTALL_DIR/agents/all.sh"
-    return
-  fi
+cmd_install_base_setup() {
+  bash "$INSTALL_DIR/categories/base-setup.sh"
+}
 
-  local choice
-  choice=$(gum choose \
-    "All" \
-    "pi" \
-    "claude" \
-    "codex" \
-    "gemini" \
-    "copilot" \
-    "opencode" \
-    "<< Back" \
-    --header "Install coding agents")
+cmd_install_terminal_tools() {
+  bash "$INSTALL_DIR/categories/terminal-tools.sh"
+}
 
-  case "$choice" in
-    All) bash "$INSTALL_DIR/agents/all.sh" ;;
-    pi|claude|codex|gemini|copilot|opencode) bash "$INSTALL_DIR/agents/app-${choice}.sh" ;;
-    *) return 0 ;;
-  esac
+cmd_install_coding_agents() {
+  bash "$INSTALL_DIR/categories/coding-agents.sh"
+}
+
+cmd_install_everything() {
+  run_profile auto
 }
 
 cmd_install() {
@@ -102,6 +93,37 @@ cmd_install() {
     run_profile "${2:-auto}"
     return
   fi
+
+  case "${1:-}" in
+    base|base-setup)
+      cmd_install_base_setup
+      return
+      ;;
+    terminal|terminal-tools)
+      cmd_install_terminal_tools
+      return
+      ;;
+    languages)
+      bash "$INSTALL_DIR/languages/select.sh"
+      return
+      ;;
+    agents|coding-agents)
+      cmd_install_coding_agents
+      return
+      ;;
+    everything|all)
+      cmd_install_everything
+      return
+      ;;
+    theme)
+      cmd_theme
+      return
+      ;;
+    clean-backups)
+      cmd_clean_backups
+      return
+      ;;
+  esac
 
   if ! command -v gum >/dev/null 2>&1; then
     echo "gum is required for interactive install menus."
@@ -111,18 +133,24 @@ cmd_install() {
 
   local choice
   choice=$(gum choose \
-    "Full Setup" \
+    "Base Setup" \
+    "Terminal Tools" \
     "Languages" \
     "Coding Agents" \
     "Theme" \
+    "Clean Backups" \
+    "Install Everything" \
     "Quit" \
     --header "Install / setup")
 
   case "$choice" in
-    "Full Setup") run_profile auto ;;
+    "Base Setup") cmd_install_base_setup ;;
+    "Terminal Tools") cmd_install_terminal_tools ;;
     "Languages") bash "$INSTALL_DIR/languages/select.sh" ;;
-    "Coding Agents") install_agents_menu ;;
+    "Coding Agents") cmd_install_coding_agents ;;
     "Theme") cmd_theme ;;
+    "Clean Backups") cmd_clean_backups ;;
+    "Install Everything") cmd_install_everything ;;
     *) return 0 ;;
   esac
 }

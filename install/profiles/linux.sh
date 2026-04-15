@@ -5,4 +5,4 @@ set -euo pipefail
 
 install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 
-bash "$install_dir/profiles/base.sh"
+bash "$install_dir/categories/install-everything.sh"

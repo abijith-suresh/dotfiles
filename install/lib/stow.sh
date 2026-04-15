@@ -102,6 +102,15 @@ prepare_stow_packages() {
   done
 }
 
+manage_stow_packages() {
+  local dotfiles_dir="$1"
+  shift
+  local packages=("$@")
+
+  prepare_stow_packages "$dotfiles_dir" "${packages[@]}"
+  stow_packages "$dotfiles_dir" "${packages[@]}"
+}
+
 list_target_paths() {
   local dotfiles_dir="$1"
   shift

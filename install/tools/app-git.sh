@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install btop and stow its config
+# Install git and stow its config
 
 set -euo pipefail
 
@@ -11,5 +11,6 @@ source "$install_dir/lib/common.sh"
 # shellcheck disable=SC1091
 source "$install_dir/lib/stow.sh"
 
-apt_install_if_missing btop
-manage_stow_packages "$dotfiles_dir" btop
+apt_install_if_missing git
+ensure_dir "$HOME/.config/git"
+manage_stow_packages "$dotfiles_dir" git
