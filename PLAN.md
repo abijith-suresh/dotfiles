@@ -174,4 +174,4 @@ Modernize the dotfiles repo by adopting sensible defaults from basecamp/omakub â
 
 ## Current Step
 
-[Leave blank until build begins â€” agent updates this during build]
+All phases complete. Ready for testing and PR.

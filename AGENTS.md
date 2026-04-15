@@ -4,7 +4,7 @@ This guide is for agentic coding assistants working in this personal dotfiles re
 
 ## Repository Overview
 
-This is a personal dotfiles repository managed with GNU Stow for Unix-like systems (Linux/macOS) and PowerShell scripts for Windows. It contains configuration files for shell environments, editors, terminal tools, and development utilities.
+Personal dotfiles repository managed with GNU Stow. Contains configuration files for shell environments, editors, terminal tools, and development utilities.
 
 **Primary Purpose**: Manage and version control personal configuration files across multiple machines and operating systems.
 
@@ -12,233 +12,106 @@ This is a personal dotfiles repository managed with GNU Stow for Unix-like syste
 
 ```
 dotfiles/
-├── configs/          # All configuration files organized by application (for GNU Stow)
-│   ├── bash/        # Bash shell configuration
-│   ├── bat/         # bat (cat replacement) config
-│   ├── git/         # Git configuration
-│   ├── nvim/        # Neovim editor config (Lua-based)
-│   ├── powershell/  # PowerShell profile
-│   ├── starship/    # Starship prompt config
-│   └── zsh/         # Zsh shell configuration
-├── install/         # OS-specific install scripts
-│   ├── wsl.sh      # Ubuntu WSL package installer
-│   └── windows.ps1 # Windows package manager (winget) script
-├── scripts/         # Utility scripts
-│   └── update.sh   # System and plugin updater
-└── wallpapers/      # Visual assets
+├── install.sh          # Entry point — minimal bootstrap
+├── configs/            # All configuration files (GNU Stow packages)
+│   ├── bin/            # dotfiles CLI → ~/.local/bin/dotfiles
+│   ├── zsh/            # Zsh shell (primary)
+│   ├── bash/           # Bash shell (fallback)
+│   ├── nvim/           # Neovim (LazyVim)
+│   ├── vim/            # Vim (fallback)
+│   ├── tmux/           # tmux
+│   ├── zellij/         # Zellij
+│   ├── git/            # Git config
+│   ├── starship/       # Prompt
+│   ├── bat/            # bat
+│   ├── btop/           # System monitor
+│   ├── fastfetch/      # System info
+│   ├── fzf/            # Fuzzy finder
+│   └── ripgrep/        # Search
+├── install/
+│   ├── linux.sh        # System package update
+│   └── terminal/       # Per-tool install scripts
+│       ├── required/   # gum (UI dependency)
+│       └── app-*.sh    # Idempotent per-tool installers
+├── scripts/
+│   ├── theme.sh        # Theme switcher
+│   └── update.sh       # Update delegation
+└── themes/             # 10 color themes
+    └── <theme>/
+        ├── zellij.kdl, btop.theme, neovim.lua
+        ├── starship.toml, alacritty.toml
 ```
 
-## Installation & Setup Commands
+## Installation & Setup
 
-### Deploy Configurations (GNU Stow)
+### First-time setup
 ```bash
-cd dotfiles/configs
-stow <package_name>  # e.g., stow zsh bash git starship nvim tmux
-
-# Deploy all configs
-stow */
-
-# Remove a config
-stow -D <package_name>
+./install.sh                    # Full interactive setup
+./install.sh --dry-run          # Preview without changes
+./install.sh --skip-packages    # Stow only, no apt
 ```
 
-### Install System Packages
+### Per-tool scripts
+Each `install/terminal/app-*.sh` is:
+- Self-contained and idempotent
+- Can be run independently: `bash install/terminal/app-zellij.sh`
+- Sourced in a loop by `install.sh`
 
-**Ubuntu/WSL:**
+### Stow commands
 ```bash
-./install/wsl.sh
+cd configs
+stow <package_name>      # Deploy
+stow -D <package_name>   # Remove
+stow -n -v <package>     # Dry-run preview
+stow --restow <package>  # Re-link
 ```
-Installs: bat, btop, eza, fastfetch, fzf, git, htop, neovim, ripgrep, tmux, tree, zoxide, zsh
 
-**Windows:**
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force
-.\install\windows.ps1
-```
-Installs via winget: Chrome, Discord, Docker, Git, Neovim, VSCode, Obsidian, Starship, and more.
-
-### Update System & Configs
+### The dotfiles CLI
 ```bash
-./scripts/update.sh
+dotfiles              # Interactive menu (requires gum)
+dotfiles theme        # Switch themes
+dotfiles update       # Update everything
+dotfiles install      # Install additional tools
 ```
-Updates APT packages, Zinit plugins, and performs system maintenance.
 
 ## Code Style Guidelines
 
 ### Shell Scripts (Bash/Zsh)
 
-**File Headers:**
-- Include shebang: `#!/bin/bash` or `#!/usr/bin/env bash`
-- Add brief description in comments
-- Use `set -e` for error handling in critical scripts
-
-**Formatting:**
-- 2 spaces for indentation (NOT tabs)
-- Use lowercase for variable names: `packages=()`, `app_name="value"`
-- Quote all variables: `"$variable"` not `$variable`
-- Use arrays for lists: `packages=(bat btop eza)`
-
-**Functions:**
-```bash
-# Function description
-function_name() {
-  local variable="value"
-  command "$variable"
-}
-```
-
-**Error Handling:**
-- Use `|| { echo "Error message"; continue; }` for non-critical failures
-- Use `set -e` at start for critical scripts
-- Provide informative error messages
-
-**Comments:**
-- Use `# ---` for section headers
-- Comment non-obvious logic
-- Keep inline comments concise
+- **Shebang**: `#!/bin/bash` or `#!/usr/bin/env bash`
+- **Error handling**: `set -e` at start for critical scripts
+- **Indentation**: 2 spaces
+- **Variables**: lowercase, quoted: `"$variable"`
+- **Lists**: arrays: `packages=(bat btop eza)`
+- **Comments**: `# ---` for section headers
+- **Idempotent**: install scripts should be safe to re-run
 
 ### Lua (Neovim Config)
 
-**File Organization:**
-- Core settings: `lua/core/` (options.lua, keymaps.lua)
-- Plugins: `lua/plugins/` (one file per plugin/feature)
-- LSP config: `lua/plugins/lsp/`
+- 2 spaces indentation
+- One plugin per file in `lua/plugins/`
+- Use `vim.opt` for options, `vim.keymap` for keymaps
 
-**Formatting:**
-- 2 spaces for indentation (NOT tabs)
-- Use double quotes for strings: `"string"`
-- Comment structure:
-  ```lua
-  -- Section description
-  local variable = value -- inline comment
-  ```
+## Key Tools
 
-**Module Structure:**
-```lua
--- File: lua/plugins/example.lua
-return {
-  "author/plugin-name",
-  event = { "BufReadPre", "BufNewFile" },
-  dependencies = {},
-  config = function()
-    -- Plugin configuration
-  end,
-}
-```
-
-**Settings:**
-- Use `vim.opt` for options: `vim.opt.tabstop = 2`
-- Use `vim.keymap` for keymaps
-- Group related settings with comments
-
-### PowerShell Scripts
-
-**Formatting:**
-- Use PascalCase for function names: `Update-Environment`
-- Use proper capitalization: `$ErrorActionPreference`
-- 4 spaces for indentation in functions
-- Section headers: `# --------------------------------------`
-
-**Error Handling:**
-- Set `$ErrorActionPreference = "Stop"` for critical scripts
-- Use try-catch blocks with informative messages
-- Use `-ErrorAction SilentlyContinue` for optional imports
-
-**Functions:**
-```powershell
-function Function-Name {
-    param([string]$parameter)
-    # Function body
-}
-```
-
-## Git Configuration Standards
-
-**Default Branch:** `main`
-
-**Commit Style:**
-- Use imperative mood: "Add feature" not "Added feature"
-- Keep first line under 72 characters
-- Reference issues when applicable
-
-**Git Workflow:**
-- Auto-setup remote on push: enabled
-- Rebase on pull: enabled
-- Auto-stash during rebase: enabled
-- Follow tags on push: enabled
-
-## Common Aliases
-
-### Shell (Bash/Zsh)
-```bash
-ls → eza --color=auto
-cat → bat
-cd → z (zoxide)
-v → nvim
-gs → git status
-gc → git commit -m
-```
-
-### Git Shortcuts
-```bash
-gs  = git status
-ga  = git add
-gc  = git commit -m
-gp  = git push
-gl  = git pull / git log (context-dependent)
-gco = git checkout
-gb  = git branch
-```
-
-## Testing & Validation
-
-**No formal test suite**, but validation methods:
-
-1. **Shell Scripts:** Run with `bash -n script.sh` to check syntax
-2. **Stow Deployment:** Use `stow -n <package>` for dry-run
-3. **Manual Testing:** Deploy configs in a test environment before production use
+- **Shell**: zsh (Zinit) + bash fallback
+- **Prompt**: Starship
+- **Version manager**: mise (replaces NVM, SDKMAN)
+- **Multiplexer**: tmux + zellij
+- **Editor**: Neovim (LazyVim) + vim fallback
+- **Theme system**: 10 themes, switched via `dotfiles theme`
 
 ## Important Notes for Agents
 
 1. **Never modify user-specific data** in .gitconfig (name, email)
 2. **Preserve exact indentation** when editing config files
-3. **Test scripts in WSL/Ubuntu environment** - primary target platform
-4. **Don't break existing aliases** - users rely on muscle memory
-5. **Maintain GNU Stow compatibility** - proper directory structure in configs/
-6. **Check dependencies** before adding new tools to install scripts
-7. **Keep shell startup fast** - avoid expensive operations in .bashrc/.zshrc
-8. **Document breaking changes** clearly in commit messages
-
-## Editor Configuration (Neovim)
-
-- Plugin manager: **lazy.nvim**
-- Indentation: **2 spaces**, expand tabs
-- Line numbers: relative + absolute on cursor line
-- LSP servers: lua_ls, tsserver, html, cssls, tailwindcss, emmet_ls, pyright
-- Use system clipboard by default
-- No swap files
-
-## Platform-Specific Notes
-
-**WSL (Primary Target):**
-- Ubuntu-based
-- Uses Zinit for Zsh plugin management
-- Starship prompt for both Bash and Zsh
-- Integration with Windows filesystem expected
-
-**Windows:**
-- PowerShell profile with posh-git
-- winget for package management
-- Git Bash compatibility maintained
-
-## File Encoding & Line Endings
-
-- **Unix files**: LF line endings
-- **Windows files**: CRLF acceptable for .ps1 files
-- **Encoding**: UTF-8 without BOM preferred
+3. **Keep shell startup fast** — avoid expensive operations in .bashrc/.zshrc
+4. **Maintain GNU Stow compatibility** — proper directory structure in configs/
+5. **Theme files are in themes/** — don't hardcode colors in stowed configs
+6. **Install scripts must be idempotent** — safe to run multiple times
+7. **The dotfiles CLI depends on gum** — don't require gum in configs themselves
 
 ---
 
-**Last Updated**: 2026-01-17
+**Last Updated**: 2026-04-15
 **Maintained by**: Abijith Suresh
-**Repository**: Personal dotfiles configuration

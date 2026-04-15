@@ -15,3 +15,6 @@ configs/zsh/.config/zsh/.zcompdump*
 # OS
 .DS_Store
 Thumbs.db
+
+# Neovim theme (managed by dotfiles theme switcher)
+configs/nvim/.config/nvim/lua/plugins/theme.lua

@@ -1,18 +1,83 @@
 # Dotfiles
 
-My personal dotfiles for WSL Ubuntu and native Ubuntu/Debian Linux.
+Personal dotfiles for WSL Ubuntu and native Ubuntu/Debian Linux.
 Managed with [GNU Stow](https://www.gnu.org/software/stow/) for symlink management.
 
 ---
 
 ## Table of Contents
 
-- [Structure](#structure)
 - [Quick Start](#quick-start)
+- [The `dotfiles` Command](#the-dotfiles-command)
+- [Themes](#themes)
+- [Structure](#structure)
+- [Config Details](#config-details)
 - [Supported Platforms](#supported-platforms)
-- [Configs](#configs)
-- [Scripts](#scripts)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/abijith-suresh/dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
+./install.sh
+```
+
+The installer will:
+1. Update system packages via apt
+2. Install core CLI tools (bat, eza, fzf, ripgrep, zoxide, etc.)
+3. Install terminal tools (zsh + zinit, tmux, zellij, nvim, mise, etc.)
+4. Optionally install coding agents (pi, claude, codex, gemini, opencode)
+5. Optionally set up programming languages via mise
+6. Stow all config files
+7. Apply the default theme (catppuccin)
+
+**Flags:**
+```bash
+./install.sh --dry-run        # Preview steps without making changes
+./install.sh --skip-packages  # Skip apt install, stow only
+```
+
+---
+
+## The `dotfiles` Command
+
+After installation, the `dotfiles` CLI is available in your PATH:
+
+```bash
+dotfiles              # Interactive menu
+dotfiles theme        # Switch themes (gum-powered)
+dotfiles update       # Update system, plugins, tools
+dotfiles install      # Install additional tools/languages
+```
+
+---
+
+## Themes
+
+10 curated themes with consistent colors across all tools:
+
+| Theme | Description |
+|---|---|
+| Catppuccin | Warm pastel palette (default) |
+| Tokyo Night | Dark blue-tinted |
+| Nord | Arctic blue palette |
+| Gruvbox | Warm retro colors |
+| Everforest | Soft green nature tones |
+| Kanagawa | Japanese-inspired indigo |
+| Rose Pine | Soft pink/purple |
+| Matte Black | Neutral dark |
+| Osaka Jade | Teal-green tones |
+| Ristretto | Warm espresso browns |
+
+Each theme applies to: zellij, btop, neovim, starship, and alacritty.
+
+```bash
+dotfiles theme            # Interactive selection
+dotfiles theme catppuccin # Direct switch
+```
 
 ---
 
@@ -20,46 +85,77 @@ Managed with [GNU Stow](https://www.gnu.org/software/stow/) for symlink manageme
 
 ```
 dotfiles/
-├── bootstrap.sh         # One-shot setup script (run this first)
-├── configs/             # Config files organized by app (GNU Stow packages)
-│   ├── bat/             # bat (cat replacement)
-│   ├── bash/            # Bash shell
-│   ├── fzf/             # fzf fuzzy finder
-│   ├── git/             # Git (XDG: ~/.config/git/)
-│   ├── nvim/            # Neovim
-│   ├── ripgrep/         # ripgrep
-│   ├── starship/        # Starship prompt
-│   ├── tmux/            # tmux
-│   └── zsh/             # Zsh (XDG: ~/.config/zsh/)
+├── install.sh            # Entry point — run this first
+├── configs/              # Config files organized by app (GNU Stow packages)
+│   ├── bash/             # Bash shell
+│   ├── bat/              # bat (cat replacement)
+│   ├── bin/              # dotfiles CLI
+│   ├── btop/             # System monitor
+│   ├── fastfetch/        # System info display
+│   ├── fzf/              # fzf fuzzy finder
+│   ├── git/              # Git (XDG: ~/.config/git/)
+│   ├── nvim/             # Neovim
+│   ├── ripgrep/          # ripgrep
+│   ├── starship/         # Starship prompt
+│   ├── tmux/             # tmux multiplexer
+│   ├── vim/              # Vim fallback
+│   ├── zellij/           # Zellij multiplexer
+│   └── zsh/              # Zsh (XDG: ~/.config/zsh/)
 ├── install/
-│   └── linux.sh         # Ubuntu/Debian package installer
+│   ├── linux.sh          # System package update
+│   └── terminal/         # Per-tool install scripts
+│       ├── required/     # gum (needed for UI)
+│       ├── app-*.sh      # Individual tool installers
+│       ├── agents.sh     # Coding agent installer
+│       └── select-language.sh
 ├── scripts/
-│   └── update.sh        # Update plugins and tools
+│   ├── theme.sh          # Theme switcher
+│   ├── update.sh         # Update delegation
+│   └── generate-starship-themes.sh
+├── themes/               # 10 color themes
+│   └── <theme>/
+│       ├── zellij.kdl
+│       ├── btop.theme
+│       ├── neovim.lua
+│       ├── starship.toml
+│       └── alacritty.toml
 └── wallpapers/
 ```
 
 ---
 
-## Quick Start
+## Config Details
 
+All configs follow the [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) standard.
+
+### Shell (zsh)
+
+- Entry point: `~/.zshenv` → sets `ZDOTDIR=$HOME/.config/zsh` and XDG vars
+- Main config: `~/.config/zsh/.zshrc`
+- Aliases: `~/.config/zsh/.zsh_aliases` (minimal set — use lazygit for complex git)
+- Functions: `~/.config/zsh/.zsh_functions`
+- Plugin manager: [Zinit](https://github.com/zdharma-continuum/zinit)
+- Prompt: [Starship](https://starship.rs/)
+
+### Language Management (mise)
+
+[mise](https://mise.jdx.dev/) replaces NVM, SDKMAN, and other version managers:
 ```bash
-git clone https://github.com/abijith-suresh/dotfiles.git ~/Dotfiles
-cd ~/Dotfiles
-./bootstrap.sh
+mise use --global node@lts    # Install Node.js LTS
+mise use --global java@latest # Install Java
+mise use --global python@latest
+mise ls                       # List installed tools
 ```
 
-The bootstrap script will:
-1. Install packages via `apt`
-2. Install [Zinit](https://github.com/zdharma-continuum/zinit) plugin manager
-3. Create XDG base directories
-4. Stow all configs
-5. Set zsh as your default shell (if not already)
+### Multiplexers
 
-**Flags:**
-```bash
-./bootstrap.sh --dry-run        # Preview steps without making changes
-./bootstrap.sh --skip-packages  # Skip apt install, stow only
-```
+- **tmux** — configured with TPM, Catppuccin theme, vim-style keybindings
+- **Zellij** — modern alternative, locked-mode vim-style keybindings
+
+### Git
+
+- Config: `~/.config/git/config`
+- Global ignore: `~/.config/git/ignore`
 
 ---
 
@@ -67,72 +163,11 @@ The bootstrap script will:
 
 | Platform | Status |
 |---|---|
-| Ubuntu (WSL) | Supported |
-| Ubuntu / Debian (native) | Supported |
-| macOS | Planned — [#11](https://github.com/abijith-suresh/dotfiles/issues/11) |
-| Fedora | Planned — [#12](https://github.com/abijith-suresh/dotfiles/issues/12) |
-| Arch Linux | Planned — [#13](https://github.com/abijith-suresh/dotfiles/issues/13) |
-
----
-
-## Configs
-
-All configs follow the [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) standard.
-
-### Stow commands
-
-```bash
-cd configs
-
-# Individual packages
-stow zsh
-stow git
-stow bat
-stow starship
-stow nvim
-stow fzf
-stow ripgrep
-stow tmux
-
-# All at once
-stow zsh git bat starship nvim fzf ripgrep tmux
-```
-
-### zsh
-
-- Entry point: `~/.zshenv` → sets `ZDOTDIR=$HOME/.config/zsh` and XDG vars
-- Main config: `~/.config/zsh/.zshrc`
-- Aliases: `~/.config/zsh/.zsh_aliases`
-- Functions: `~/.config/zsh/.zsh_functions`
-- Plugin manager: [Zinit](https://github.com/zdharma-continuum/zinit)
-- Prompt: [Starship](https://starship.rs/)
-
-### git
-
-- Config: `~/.config/git/config`
-- Global ignore: `~/.config/git/ignore`
-
-### Neovim
-
-Minimal setup — 7 plugins:
-
-| Plugin | Purpose |
-|---|---|
-| catppuccin/nvim | Colorscheme (Mocha) |
-| nvim-treesitter | Syntax highlighting |
-| telescope.nvim | Fuzzy finder |
-| nvim-lspconfig | LSP client |
-| mason.nvim | LSP server installer |
-| mason-lspconfig | LSP bridge |
-| nvim-cmp | Completion |
-
-Auto-installed LSP servers: `lua_ls`, `pyright`, `ts_ls`, `html`, `cssls`
-
----
-
-## Scripts
-
-- `scripts/update.sh` — Update Zinit plugins, Starship, and system packages
+| Ubuntu (WSL) | ✅ Supported |
+| Ubuntu / Debian (native) | ✅ Supported |
+| macOS | 🔜 Planned |
+| Fedora | 🔜 Planned |
+| Arch Linux | 🔜 Planned |
 
 ---
 
@@ -140,17 +175,19 @@ Auto-installed LSP servers: `lua_ls`, `pyright`, `ts_ls`, `html`, `cssls`
 
 ### WSL: `compinit: no such file or directory: /usr/share/zsh/vendor-completions/_docker`
 
-**Cause:** Docker Desktop's WSL integration writes a completion file into WSL. When Docker
-Desktop updates or its WSL integration changes state, the file becomes a broken symlink.
-`compinit` reads the stale cache and fails to find the file on disk.
-
-**Fix:** `bootstrap.sh` (and `install/linux.sh`) automatically remove the broken file and
-clear the completion cache:
+Docker Desktop's WSL integration can leave broken symlinks. Fixed automatically by `install.sh`.
 
 ```bash
 sudo rm -f /usr/share/zsh/vendor-completions/_docker
 rm -f ~/.zcompdump*
 ```
 
-Docker tab-completion continues to work because `.zshrc` loads it via Zinit from Docker's
-official GitHub repo — no dependency on Docker Desktop's WSL integration.
+### Stow conflicts
+
+If stow reports conflicts with existing config files:
+
+```bash
+# Back up existing file, then stow
+mv ~/.config/btop/btop.conf ~/.config/btop/btop.conf.bak
+cd ~/.dotfiles/configs && stow btop
+```
