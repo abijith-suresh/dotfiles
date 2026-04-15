@@ -14,11 +14,20 @@ ensure_mise() {
   bash "$install_dir/tools/app-mise.sh"
 }
 
+trust_mise_global_config() {
+  local global_config="${XDG_CONFIG_HOME:-$HOME/.config}/mise/config.toml"
+
+  [ -f "$global_config" ] || return 0
+  mise trust "$global_config" >/dev/null 2>&1 || true
+}
+
 ensure_mise_tool() {
   local tool="$1"
 
   ensure_mise
+  trust_mise_global_config
   mise use --global "$tool"
+  trust_mise_global_config
 }
 
 ensure_local_npm_prefix() {
