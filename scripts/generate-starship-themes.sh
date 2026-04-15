@@ -41,13 +41,13 @@ truncate_to_repo = false
 
 [directory.substitutions]
 'Documents' = '󰈙'
-'Downloads' = ' '
-'Music' = ' '
-'Pictures' = ' '
+'Downloads' = ' '
+'Music' = ' '
+'Pictures' = ' '
 
 [git_branch]
 style = 'fg:green'
-symbol = ' '
+symbol = ' '
 format = '[on](white) [$symbol$branch ]($style)'
 
 [git_status]
@@ -59,38 +59,38 @@ symbol = ' '
 
 [python]
 style = 'teal'
-symbol = ' '
+symbol = ' '
 format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
 pyenv_version_name = true
 pyenv_prefix = ''
 
 [lua]
-symbol = ' '
+symbol = ' '
 
 [nodejs]
 style = 'blue'
-symbol = ' '
+symbol = ' '
 
 [golang]
 style = 'blue'
-symbol = ' '
+symbol = ' '
 
 [rust]
 style = 'orange'
-symbol = ' '
+symbol = ' '
 
 [package]
-symbol = ' '
+symbol = '󰏗 '
 
 [docker_context]
-symbol = ' '
+symbol = ' '
 style = 'fg:#06969A'
 format = '[$symbol]($style) $path'
 detect_files = ['docker-compose.yml', 'docker-compose.yaml', 'Dockerfile']
 detect_extensions = ['Dockerfile']
 
 [jobs]
-symbol = ' '
+symbol = ' '
 style = 'red'
 number_threshold = 1
 format = '[$symbol]($style)'
