@@ -17,7 +17,7 @@ step "Installing required UI dependency"
 run_script "$install_dir/tools/app-gum.sh"
 
 step "Installing core CLI tools"
-run_script "$install_dir/tools/app-core-cli.sh"
+run_script "$install_dir/tools/app-core.sh"
 run_script "$install_dir/tools/app-btop.sh"
 run_script "$install_dir/tools/app-fd.sh"
 run_script "$install_dir/tools/app-fzf.sh"
