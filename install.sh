@@ -7,9 +7,34 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$DOTFILES_DIR/install"
 
 # shellcheck disable=SC1091
+source "$INSTALL_DIR/lib/common.sh"
+# shellcheck disable=SC1091
 source "$INSTALL_DIR/lib/os.sh"
 # shellcheck disable=SC1091
 source "$INSTALL_DIR/lib/ui.sh"
+
+DOTFILES_CLI="$DOTFILES_DIR/configs/bin/.local/bin/dotfiles"
+
+usage() {
+  cat <<'EOF'
+Usage: ./install.sh
+
+Bootstrap minimal dependencies, make the dotfiles CLI available,
+and optionally launch the interactive dotfiles installer.
+EOF
+}
+
+case "${1:-}" in
+  "") ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    usage >&2
+    exit 1
+    ;;
+esac
 
 ui_header
 
@@ -45,9 +70,19 @@ if ! ui_confirm "Proceed with bootstrap?"; then
   exit 0
 fi
 
-bash "$INSTALL_DIR/bootstrap/linux-apt.sh"
-bash "$INSTALL_DIR/tools/app-gum.sh"
+step "Bootstrapping this machine"
+run_named_script "[1/3] Installing bootstrap dependencies" "$INSTALL_DIR/bootstrap/linux-apt.sh"
+run_named_script "[2/3] Installing gum" "$INSTALL_DIR/tools/app-gum.sh"
+run_named_script "[3/3] Making dotfiles CLI available" "$INSTALL_DIR/tools/app-bin.sh"
 
-# Hand off to the main CLI install flow.
-# Run the script from the repo directly so this works even before stow.
-bash "$DOTFILES_DIR/configs/bin/.local/bin/dotfiles" install --profile "$platform"
+ok "Bootstrap complete"
+info "Use 'dotfiles install' for the full setup flow."
+info "Use 'dotfiles theme' or 'dotfiles update' later from the CLI."
+
+echo ""
+if ui_confirm "Launch the dotfiles installer now?"; then
+  bash "$DOTFILES_CLI" install
+else
+  echo "Next steps:"
+  echo "  ~/.local/bin/dotfiles install"
+fi

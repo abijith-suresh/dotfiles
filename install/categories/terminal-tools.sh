@@ -9,21 +9,18 @@ install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 source "$install_dir/lib/common.sh"
 
 step "Installing terminal tools"
-for script in \
-  "$install_dir/tools/app-alacritty.sh" \
-  "$install_dir/tools/app-btop.sh" \
-  "$install_dir/tools/app-fastfetch.sh" \
-  "$install_dir/tools/app-fd.sh" \
-  "$install_dir/tools/app-fzf.sh" \
-  "$install_dir/tools/app-gh.sh" \
-  "$install_dir/tools/app-lazygit.sh" \
-  "$install_dir/tools/app-lazydocker.sh" \
-  "$install_dir/tools/app-neovim.sh" \
-  "$install_dir/tools/app-ripgrep.sh" \
-  "$install_dir/tools/app-tmux.sh" \
-  "$install_dir/tools/app-vim.sh" \
-  "$install_dir/tools/app-zellij.sh"; do
-  run_script "$script"
-done
+run_named_script "[1/13] Installing alacritty config" "$install_dir/tools/app-alacritty.sh"
+run_named_script "[2/13] Installing btop + config" "$install_dir/tools/app-btop.sh"
+run_named_script "[3/13] Installing fastfetch + config" "$install_dir/tools/app-fastfetch.sh"
+run_named_script "[4/13] Installing fd" "$install_dir/tools/app-fd.sh"
+run_named_script "[5/13] Installing fzf + config" "$install_dir/tools/app-fzf.sh"
+run_named_script "[6/13] Installing GitHub CLI" "$install_dir/tools/app-gh.sh"
+run_named_script "[7/13] Installing lazygit" "$install_dir/tools/app-lazygit.sh"
+run_named_script "[8/13] Installing lazydocker" "$install_dir/tools/app-lazydocker.sh"
+run_named_script "[9/13] Installing neovim + config" "$install_dir/tools/app-neovim.sh"
+run_named_script "[10/13] Installing ripgrep + config" "$install_dir/tools/app-ripgrep.sh"
+run_named_script "[11/13] Installing tmux + config" "$install_dir/tools/app-tmux.sh"
+run_named_script "[12/13] Installing vim + config" "$install_dir/tools/app-vim.sh"
+run_named_script "[13/13] Installing zellij + config" "$install_dir/tools/app-zellij.sh"
 
 ok "Terminal tools complete"

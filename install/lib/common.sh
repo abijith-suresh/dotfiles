@@ -46,6 +46,28 @@ repo_root() {
   cd "$(dirname "$script_path")/../.." && pwd
 }
 
+run_task() {
+  local title="$1"
+  shift
+
+  if command_exists gum; then
+    gum spin --spinner dot --title "$title" --show-error -- "$@"
+  else
+    local log_file status
+    log_file="$(mktemp)"
+    if "$@" >"$log_file" 2>&1; then
+      rm -f "$log_file"
+      return 0
+    fi
+
+    status=$?
+    warn "$title failed"
+    cat "$log_file" >&2
+    rm -f "$log_file"
+    return "$status"
+  fi
+}
+
 run_script() {
   local script="$1"
   shift || true
@@ -56,4 +78,18 @@ run_script() {
   fi
 
   bash "$script" "$@"
+}
+
+run_named_script() {
+  local title="$1"
+  local script="$2"
+  shift 2 || true
+
+  if [ ! -f "$script" ]; then
+    warn "Missing script: $script"
+    return 1
+  fi
+
+  run_task "$title" bash "$script" "$@"
+  ok "$title"
 }

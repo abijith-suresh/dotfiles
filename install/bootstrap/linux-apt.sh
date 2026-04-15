@@ -3,8 +3,11 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "$0")/.." && pwd)/lib/common.sh"
+
 sudo apt update -y
-sudo apt install -y \
+apt_install_if_missing \
   ca-certificates \
   curl \
   git \

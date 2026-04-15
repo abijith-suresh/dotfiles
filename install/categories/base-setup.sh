@@ -30,17 +30,14 @@ for dir in \
 done
 
 step "Installing base setup"
-for script in \
-  "$install_dir/tools/app-bin.sh" \
-  "$install_dir/tools/app-bash.sh" \
-  "$install_dir/tools/app-git.sh" \
-  "$install_dir/tools/app-bat.sh" \
-  "$install_dir/tools/app-eza.sh" \
-  "$install_dir/tools/app-zoxide.sh" \
-  "$install_dir/tools/app-starship.sh" \
-  "$install_dir/tools/app-mise.sh" \
-  "$install_dir/tools/app-zsh.sh"; do
-  run_script "$script"
-done
+run_named_script "[1/9] Stowing dotfiles CLI" "$install_dir/tools/app-bin.sh"
+run_named_script "[2/9] Applying bash config" "$install_dir/tools/app-bash.sh"
+run_named_script "[3/9] Installing git + config" "$install_dir/tools/app-git.sh"
+run_named_script "[4/9] Installing bat + config" "$install_dir/tools/app-bat.sh"
+run_named_script "[5/9] Installing eza" "$install_dir/tools/app-eza.sh"
+run_named_script "[6/9] Installing zoxide" "$install_dir/tools/app-zoxide.sh"
+run_named_script "[7/9] Installing starship + config" "$install_dir/tools/app-starship.sh"
+run_named_script "[8/9] Installing mise" "$install_dir/tools/app-mise.sh"
+run_named_script "[9/9] Installing zsh + config" "$install_dir/tools/app-zsh.sh"
 
 ok "Base setup complete"
