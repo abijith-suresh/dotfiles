@@ -20,33 +20,13 @@ to_dir_name() {
   echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g'
 }
 
-backup_unmanaged_target() {
-  local target="$1"
-  local backup="$target.pre-dotfiles-backup"
-
-  if [ -e "$target" ] && [ ! -L "$target" ]; then
-    mkdir -p "$(dirname "$backup")"
-    mv "$target" "$backup"
-    echo "Backed up unmanaged file: $target -> $backup"
-  fi
-}
-
-prepare_live_targets() {
-  backup_unmanaged_target "$HOME/.config/starship.toml"
-  backup_unmanaged_target "$HOME/.config/btop/btop.conf"
-  backup_unmanaged_target "$HOME/.config/btop/themes/current.theme"
-  backup_unmanaged_target "$HOME/.config/zellij/config.kdl"
-  backup_unmanaged_target "$HOME/.config/zellij/themes/current.kdl"
-  backup_unmanaged_target "$HOME/.config/alacritty/theme.toml"
-}
-
 restow_theme_packages() {
   if ! command -v stow >/dev/null 2>&1; then
     echo "stow not found — updated repo files but did not restow live config"
     return 0
   fi
 
-  prepare_live_targets
+  prepare_stow_packages "$DOTFILES_DIR" starship nvim btop zellij alacritty
 
   (
     cd "$DOTFILES_DIR/configs"
@@ -122,6 +102,8 @@ if ! command -v gum >/dev/null 2>&1; then
   for name in "${THEME_NAMES[@]}"; do
     echo "  - $(to_dir_name "$name")"
   done
+  echo ""
+  echo "Backups created during theme conflict handling use the suffix '.backup'."
   exit 1
 fi
 

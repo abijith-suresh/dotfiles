@@ -34,6 +34,10 @@ cmd_theme() {
   bash "$DOTFILES_DIR/scripts/theme.sh" "$@"
 }
 
+cmd_clean_backups() {
+  bash "$DOTFILES_DIR/scripts/clean-backups.sh" "$@"
+}
+
 cmd_update() {
   echo "Starting update..."
 
@@ -130,12 +134,13 @@ show_menu() {
   fi
 
   local choice
-  choice=$(gum choose "Theme" "Update" "Install" "Quit" --header "What would you like to do?")
+  choice=$(gum choose "Theme" "Update" "Install" "Clean Backups" "Quit" --header "What would you like to do?")
 
   case "$choice" in
     Theme) cmd_theme ;;
     Update) cmd_update ;;
     Install) cmd_install ;;
+    "Clean Backups") cmd_clean_backups ;;
     *) return 0 ;;
   esac
 }
@@ -156,8 +161,12 @@ case "${1:-}" in
     shift
     cmd_install "$@"
     ;;
+  clean-backups)
+    shift
+    cmd_clean_backups "$@"
+    ;;
   *)
-    echo "Usage: dotfiles [theme|update|install]"
+    echo "Usage: dotfiles [theme|update|install|clean-backups]"
     exit 1
     ;;
 esac

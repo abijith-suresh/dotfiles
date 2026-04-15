@@ -18,4 +18,5 @@ configs/bash/*.local
 configs/git/.config/git/*.local
 
 # Dotfiles-managed backups created during migrations/tests
-*.pre-dotfiles-backup
+*.backup
+*.backup.*
