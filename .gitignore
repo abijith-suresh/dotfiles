@@ -12,6 +12,11 @@ configs/zsh/.config/zsh/.zcompdump*
 # Local override files (user-specific, not tracked)
 *.local
 
+# But do track the stow package for ~/.local/bin
+!configs/bin/.local/
+!configs/bin/.local/bin/
+!configs/bin/.local/bin/dotfiles
+
 # OS
 .DS_Store
 Thumbs.db
