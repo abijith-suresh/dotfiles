@@ -9,27 +9,67 @@ source "$install_dir/lib/common.sh"
 # shellcheck disable=SC1091
 source "$install_dir/lib/ui.sh"
 
-choices=("Node.js" "Java" "Python" "Go" "Rust" "Ruby" "PHP" "Elixir")
-selected=$(ui_choose_many "Select programming languages" "${choices[@]}")
+choices=("Node.js" "Bun" "Java" "Python" "Go" "Rust")
 
-[ -z "$selected" ] && exit 0
+normalize_language() {
+  case "$1" in
+    node|nodejs|"node.js") echo "Node.js" ;;
+    bun) echo "Bun" ;;
+    java) echo "Java" ;;
+    python|py) echo "Python" ;;
+    go|golang) echo "Go" ;;
+    rust) echo "Rust" ;;
+    list|--list) echo "__LIST__" ;;
+    *) return 1 ;;
+  esac
+}
 
-step "Installing programming languages"
-
-index=0
-total=$(printf '%s\n' "$selected" | sed '/^$/d' | wc -l | tr -d ' ')
-while IFS= read -r choice; do
-  [ -z "$choice" ] && continue
-  index=$((index + 1))
+run_language() {
+  local choice="$1"
+  local label="$2"
 
   case "$choice" in
-    "Node.js") run_named_script "[$index/$total] Installing Node.js" "$base_dir/app-node.sh" ;;
-    Java) run_named_script "[$index/$total] Installing Java" "$base_dir/app-java.sh" ;;
-    Python) run_named_script "[$index/$total] Installing Python" "$base_dir/app-python.sh" ;;
-    Go) run_named_script "[$index/$total] Installing Go" "$base_dir/app-go.sh" ;;
-    Rust) run_named_script "[$index/$total] Installing Rust" "$base_dir/app-rust.sh" ;;
-    Ruby) run_named_script "[$index/$total] Installing Ruby" "$base_dir/app-ruby.sh" ;;
-    PHP) run_named_script "[$index/$total] Installing PHP" "$base_dir/app-php.sh" ;;
-    Elixir) run_named_script "[$index/$total] Installing Elixir" "$base_dir/app-elixir.sh" ;;
+    "Node.js") run_named_script "$label" "$base_dir/app-node.sh" ;;
+    "Bun") run_named_script "$label" "$base_dir/app-bun.sh" ;;
+    Java) run_named_script "$label" "$base_dir/app-java.sh" ;;
+    Python) run_named_script "$label" "$base_dir/app-python.sh" ;;
+    Go) run_named_script "$label" "$base_dir/app-go.sh" ;;
+    Rust) run_named_script "$label" "$base_dir/app-rust.sh" ;;
   esac
-done <<< "$selected"
+}
+
+selected=()
+if [ "$#" -gt 0 ]; then
+  for arg in "$@"; do
+    normalized="$(normalize_language "$arg")" || {
+      echo "Unknown language: $arg" >&2
+      echo "Available: node bun java python go rust" >&2
+      exit 1
+    }
+
+    if [ "$normalized" = "__LIST__" ]; then
+      printf '%s\n' "${choices[@]}"
+      exit 0
+    fi
+
+    selected+=("$normalized")
+  done
+else
+  mapfile -t selected < <(ui_choose_many "Select programming languages" "${choices[@]}" | sed '/^$/d')
+fi
+
+if [ "${#selected[@]}" -eq 0 ]; then
+  info "No languages selected."
+  exit 0
+fi
+
+mapfile -t selected < <(printf '%s\n' "${selected[@]}" | awk '!seen[$0]++')
+
+total="${#selected[@]}"
+index=0
+
+step "Installing programming languages"
+for choice in "${selected[@]}"; do
+  index=$((index + 1))
+  run_language "$choice" "[$index/$total] Installing $choice"
+done
