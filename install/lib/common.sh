@@ -27,6 +27,15 @@ ensure_dir() {
   [ -d "$1" ] || mkdir -p "$1"
 }
 
+ensure_sudo_access() {
+  if [ "$(id -u)" -eq 0 ]; then
+    return 0
+  fi
+
+  info "Sudo access is required for the next step."
+  sudo -v
+}
+
 apt_install_if_missing() {
   local package
   for package in "$@"; do

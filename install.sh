@@ -70,6 +70,8 @@ if ! ui_confirm "Proceed with bootstrap?"; then
   exit 0
 fi
 
+ensure_sudo_access
+
 step "Bootstrapping this machine"
 run_named_script "[1/3] Installing bootstrap dependencies" "$INSTALL_DIR/bootstrap/linux-apt.sh"
 run_named_script "[2/3] Installing gum" "$INSTALL_DIR/tools/app-gum.sh"

@@ -8,6 +8,8 @@ install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck disable=SC1091
 source "$install_dir/lib/common.sh"
 
+ensure_sudo_access
+
 step "Installing terminal tools"
 run_named_script "[1/13] Installing alacritty config" "$install_dir/tools/app-alacritty.sh"
 run_named_script "[2/13] Installing btop + config" "$install_dir/tools/app-btop.sh"

@@ -17,6 +17,8 @@ if [ "$(detect_os)" = "wsl" ]; then
   rm -f "$HOME"/.zcompdump*
 fi
 
+ensure_sudo_access
+
 step "Creating XDG directories"
 for dir in \
   "$HOME/.config" \
