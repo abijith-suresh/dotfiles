@@ -17,9 +17,10 @@ This repository is a GNU Stow-based dotfiles system with repo-backed theme state
 
 4. **Install architecture is layered**
    - `install/bootstrap/` → minimal host bootstrap
+   - `install/categories/` → category orchestration scripts
    - `install/lib/` → shared helpers
-   - `install/profiles/` → orchestrated setup flows
-   - `install/tools/` → per-tool installers
+   - `install/profiles/` → platform entrypoints for full setup
+   - `install/tools/` → per-tool/per-app installers
    - `install/agents/` → per-agent installers
    - `install/languages/` → per-language installers
 
@@ -31,19 +32,21 @@ dotfiles/
 ├── configs/                   # stow packages
 ├── install/
 │   ├── bootstrap/
+│   ├── categories/
 │   ├── lib/
 │   ├── profiles/
 │   ├── tools/
 │   ├── agents/
 │   └── languages/
 ├── scripts/
+│   ├── clean-backups.sh
 │   ├── theme.sh
 │   ├── update.sh
 │   └── generate-starship-themes.sh
 ├── themes/
 │   ├── current-theme
 │   └── <theme>/
-└── README.md / AGENTS.md / PLAN.md
+└── README.md / AGENTS.md
 ```
 
 ## What is generated vs hand-maintained
@@ -77,6 +80,8 @@ These are still repo-backed and tracked, but are updated by `scripts/theme.sh`:
 - Stow packages should map cleanly onto XDG locations whenever possible
 - Do not create hidden one-off deployment paths outside `configs/`
 - If a tool is part of the managed system, prefer a Stow package over ad hoc copying
+- Unmanaged conflicts should be backed up next to the target as `*.backup`
+- Backup cleanup should only delete backups for known managed targets
 
 ## Theme system conventions
 
@@ -87,11 +92,14 @@ These are still repo-backed and tracked, but are updated by `scripts/theme.sh`:
 
 ## Install flow conventions
 
-- `install.sh` should stay minimal
-- The long-running setup flow belongs in `dotfiles install` / `install/profiles/`
+- `install.sh` should stay minimal and two-phase
+- The long-running setup flow belongs in `dotfiles install` / `install/categories/`
+- The install menu should stay category-first even if the implementation is app-based underneath
+- `Install Everything` should exclude languages
 - Per-tool installers should live in `install/tools/app-*.sh`
 - Per-agent installers should live in `install/agents/app-*.sh`
 - Per-language installers should live in `install/languages/app-*.sh`
+- Installer and maintenance flows should remain idempotent on an existing WSL machine
 
 ## Important constraints
 
@@ -113,5 +121,7 @@ Before finishing a substantial change, try to validate with:
 This repo is moving toward:
 - one user-facing command: `dotfiles`
 - repo-backed active theme state
+- category-first install UX backed by per-app installer scripts
+- clean progress-oriented install feedback
 - modular, extensible install logic
 - clean future extension for Arch, Fedora, macOS, and desktop Linux variants

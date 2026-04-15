@@ -20,9 +20,11 @@ cd ~/.dotfiles
 It does only enough to bootstrap the real workflow:
 1. Detect platform (`wsl` or `linux`)
 2. Install minimal prerequisites (`git`, `curl`, `wget`, `jq`, `stow`, `gum`)
-3. Hand off to `dotfiles install --profile <platform>`
+3. Stow the `bin` package so the `dotfiles` CLI is available
+4. Optionally launch the interactive `dotfiles install` flow
 
-After that, the real setup is handled by the `dotfiles` CLI and the scripts under `install/`.
+`install.sh` does **not** force the full profile anymore.
+It bootstraps the machine, exposes the CLI, and leaves the real setup to `dotfiles install`.
 
 ---
 
@@ -31,13 +33,28 @@ After that, the real setup is handled by the `dotfiles` CLI and the scripts unde
 Once installed, the main workflow is:
 
 ```bash
-dotfiles              # Interactive menu
-dotfiles install      # Full setup, languages, or coding agents
-dotfiles theme        # Switch the active theme
-dotfiles update       # Update system and managed tools
+dotfiles                    # Interactive menu
+dotfiles install            # Category-based installer
+dotfiles install everything # Base + terminal tools + agents + default theme
+dotfiles theme              # Switch the active theme
+dotfiles update             # Update system and managed tools
+dotfiles clean-backups      # Delete dotfiles-created .backup files
 ```
 
 This is the preferred interface after the first bootstrap.
+
+### Install categories
+
+`dotfiles install` is category-first:
+- Base Setup
+- Terminal Tools
+- Languages
+- Coding Agents
+- Theme
+- Clean Backups
+- Install Everything
+
+`Install Everything` intentionally excludes languages.
 
 ---
 
@@ -105,12 +122,14 @@ dotfiles/
 │   └── zsh/
 ├── install/
 │   ├── bootstrap/             # Minimal host bootstrapping
+│   ├── categories/            # Category orchestration scripts
 │   ├── lib/                   # Shared helpers
-│   ├── profiles/              # Orchestrated install flows
-│   ├── tools/                 # Per-tool installers
+│   ├── profiles/              # Platform entrypoints for full install
+│   ├── tools/                 # Per-app/per-tool installers
 │   ├── agents/                # Per-agent installers
 │   └── languages/             # Per-language installers + selector
 ├── scripts/
+│   ├── clean-backups.sh       # Removes managed .backup files
 │   ├── theme.sh               # Repo-backed theme application
 │   ├── update.sh              # Delegates to dotfiles update
 │   └── generate-starship-themes.sh
@@ -118,8 +137,7 @@ dotfiles/
 │   ├── current-theme          # Active theme state
 │   └── <theme>/               # Theme source assets
 ├── README.md
-├── AGENTS.md
-└── PLAN.md                    # Local planning reference (not required in commits)
+└── AGENTS.md
 ```
 
 ---
@@ -183,7 +201,7 @@ Available installers include:
 - copilot
 - opencode
 
-You can install all or selected ones through:
+The category installer will install them as a group through:
 
 ```bash
 dotfiles install
@@ -215,9 +233,10 @@ The WSL install profile removes the common broken file and clears `.zcompdump*`.
 
 ### Stow conflicts
 
-If you already have unmanaged config files, Stow may report conflicts.
-Back them up, remove them, and restow the affected package.
+The install flow now auto-backs up many unmanaged file conflicts as `*.backup`
+before re-stowing packages.
 
+If a conflict involves a directory shape mismatch, you may still need to resolve it manually.
 Example:
 
 ```bash
@@ -228,8 +247,14 @@ stow --restow btop
 
 ### Theme switching and backups
 
-If `dotfiles theme` encounters unmanaged files for theme-managed targets,
-it may back them up as `*.pre-dotfiles-backup` before re-stowing.
+If `dotfiles theme` or `dotfiles install` encounters unmanaged files for managed targets,
+it may back them up as `*.backup` before re-stowing.
+
+After testing, you can remove those backups with:
+
+```bash
+dotfiles clean-backups
+```
 
 ---
 
