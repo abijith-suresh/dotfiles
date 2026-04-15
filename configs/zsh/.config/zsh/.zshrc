@@ -54,19 +54,16 @@ eval "$(zoxide init zsh)"
 # https://starship.rs/
 eval "$(starship init zsh)"
 
+# --- mise (language/runtime version manager) ---
+# Replaces NVM, SDKMAN, and other version managers
+# https://mise.jdx.dev/
+if command -v mise &>/dev/null; then
+  eval "$(mise activate zsh)"
+fi
+
 # --- fzf ---
 export RIPGREP_CONFIG_PATH="$XDG_CONFIG_HOME/ripgrep/ripgreprc"
 [[ -f "$XDG_CONFIG_HOME/fzf/fzf.zsh" ]] && source "$XDG_CONFIG_HOME/fzf/fzf.zsh"
-
-# --- NVM ---
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# --- Bun ---
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
 
 # --- opencode ---
 export PATH="$HOME/.opencode/bin:$PATH"
@@ -74,10 +71,6 @@ export PATH="$HOME/.opencode/bin:$PATH"
 # --- Source Aliases and Functions ---
 source "$ZDOTDIR/.zsh_aliases"
 source "$ZDOTDIR/.zsh_functions"
-
-# --- SDKMAN (Java version manager) ---
-export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
 
 # --- Source Local Overrides ---
 # Allows custom user additions without touching main config

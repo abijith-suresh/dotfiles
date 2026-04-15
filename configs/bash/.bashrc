@@ -10,68 +10,69 @@ export VISUAL="$EDITOR"
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export PAGER="less"
 
-# --- Aliases ---
-# File Management
-alias ls='eza --icons --color=auto'
-alias ll='eza -l --color=auto'
-alias la='eza -A --color=auto'
+# --- Minimal Aliases ---
+# File Listing (eza)
+alias ls='eza --icons --group-directories-first'
+alias ll='eza -lh --icons --git --group-directories-first'
+alias la='eza -lah --icons --git --group-directories-first'
+alias lt='eza --tree --icons --level=2 --long --git'
+
+# Replacements
+alias cat='bat'
 alias mkdir='mkdir -pv'
+alias cd='z'
+alias grep='grep --color=auto'
+
+# Navigation
 alias ..='cd ..'
 alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# Shortcuts
 alias c='clear'
-alias v='nvim'
+alias please='sudo'
 alias :q='exit'
 
-# Git Shortcuts
+# Git
 alias g='git'
-alias gs='git status'
-alias ga='git add'
-alias gc='git commit -m'
+alias gcm='git commit -m'
+alias gcam='git commit -a -m'
+alias gcad='git commit -a --amend'
 alias gp='git push'
-alias gl='git log --oneline --graph --all'
-alias gco='git checkout'
-alias gb='git branch'
+alias gl='git pull'
 
-# Tools & Enhancements
-alias grep='grep --color=auto'
-alias cat='bat'             # Use bat if available
-alias please='sudo'
-
-# fzf integration
-alias f='fzf'
-alias ff='fzf --preview "bat --style=numbers --color=always --line-range :500 {}"'
-
-# Use zoxide for navigation
-alias cd='z'
+# Tools
+alias lzg='lazygit'
+alias lzd='lazydocker'
+alias n='nvim'
 
 # --- Functions ---
-# Make directory and cd into it
+# Open nvim with current dir if no args
+n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
+
 mkcd() {
   mkdir -p "$1" && cd "$1"
 }
 
-# Update tools manually
-update-env() {
-  echo "Manual update for Git Bash. Consider updating tools individually."
-  echo "e.g., scoop update *, or git pull for dotfiles"
-}
+compress() { tar -czf "${1%/}.tar.gz" "${1%/}"; }
+alias decompress="tar -xzf"
 
-# Reload bashrc
-reload-bash() {
-  source ~/.bashrc
-  echo ".bashrc reloaded!"
+webm2mp4() {
+  input_file="$1"
+  output_file="${input_file%.webm}.mp4"
+  ffmpeg -i "$input_file" -c:v libx264 -preset slow -crf 22 -c:a aac -b:a 192k "$output_file"
 }
 
 # --- fzf Initialization ---
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 
-# --- NVM ---
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
 # --- OpenCode ---
 export PATH="$HOME/.opencode/bin:$PATH"
+
+# --- mise (language/runtime version manager) ---
+if command -v mise &>/dev/null; then
+  eval "$(mise activate bash)"
+fi
 
 # --- Starship Prompt ---
 eval "$(starship init bash)"

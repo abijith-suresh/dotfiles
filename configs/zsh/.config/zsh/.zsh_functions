@@ -3,9 +3,25 @@
 # Shell Functions
 # ============================
 
+# Open nvim with current dir if no args, otherwise open files
+n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
+
 # Make a directory and cd into it
 mkcd() {
   mkdir -p "$1" && cd "$1"
+}
+
+# Compress a directory into a tar.gz archive
+compress() { tar -czf "${1%/}.tar.gz" "${1%/}"; }
+
+# Extract a tar.gz archive
+alias decompress="tar -xzf"
+
+# Convert webm screen recordings to mp4
+webm2mp4() {
+  input_file="$1"
+  output_file="${input_file%.webm}.mp4"
+  ffmpeg -i "$input_file" -c:v libx264 -preset slow -crf 22 -c:a aac -b:a 192k "$output_file"
 }
 
 # Update Zinit plugins and Starship
