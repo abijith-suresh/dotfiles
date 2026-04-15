@@ -8,7 +8,7 @@ set -e
 THEMES_DIR="$(cd "$(dirname "$0")/.." && pwd)/themes"
 
 # Common starship format/layout (same for all themes)
-read -r -d '' STARSHIP_LAYOUT << 'LAYOUT' || true
+read -r -d '' STARSHIP_HEADER << 'HEADER' || true
 format = """
 $directory\
 $git_branch\
@@ -29,7 +29,9 @@ $line_break\
 $character"""
 
 add_newline = true
+HEADER
 
+read -r -d '' STARSHIP_MODULES << 'MODULES' || true
 [directory]
 style = 'bold fg:blue'
 format = '[$path ]($style)'
@@ -97,7 +99,7 @@ format = '[$symbol]($style)'
 min_time = 500
 style = 'fg:gray'
 format = '[$duration]($style)'
-LAYOUT
+MODULES
 
 # Theme palette definitions
 declare -A PALETTES
@@ -403,10 +405,12 @@ base = "#201008"
 mantle = "#180c06"
 crust = "#100804"'
 
-# Generate files
+# Generate files — palette must come after header but before module sections
 for theme in "${!PALETTES[@]}"; do
   target="$THEMES_DIR/$theme/starship.toml"
-  echo "$STARSHIP_LAYOUT" > "$target"
+  # Write: header → palette → modules
+  echo "$STARSHIP_HEADER" > "$target"
   echo "${PALETTES[$theme]}" >> "$target"
+  echo "$STARSHIP_MODULES" >> "$target"
   echo "Generated $target"
 done

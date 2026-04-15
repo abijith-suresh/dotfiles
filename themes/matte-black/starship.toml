@@ -19,6 +19,34 @@ $character"""
 
 add_newline = true
 
+palette = "matte_black"
+
+[palettes.matte_black]
+rosewater = "#c8c8c8"
+pink = "#d4756e"
+mauve = "#af8fd4"
+lavender = "#af8fd4"
+red = "#d4756e"
+maroon = "#b45050"
+peach = "#d49f6e"
+yellow = "#d4b475"
+green = "#8faf77"
+teal = "#77c7af"
+sky = "#8fafd4"
+sapphire = "#8fafd4"
+blue = "#8fafd4"
+text = "#c8c8c8"
+subtext1 = "#a0a0a0"
+subtext0 = "#787878"
+overlay2 = "#585858"
+overlay1 = "#404040"
+overlay0 = "#303030"
+surface2 = "#262626"
+surface1 = "#1e1e1e"
+surface0 = "#1a1a1a"
+base = "#1a1a1a"
+mantle = "#161616"
+crust = "#131313"
 [directory]
 style = 'bold fg:blue'
 format = '[$path ]($style)'
@@ -86,32 +114,3 @@ format = '[$symbol]($style)'
 min_time = 500
 style = 'fg:gray'
 format = '[$duration]($style)'
-
-palette = "matte_black"
-
-[palettes.matte_black]
-rosewater = "#c8c8c8"
-pink = "#d4756e"
-mauve = "#af8fd4"
-lavender = "#af8fd4"
-red = "#d4756e"
-maroon = "#b45050"
-peach = "#d49f6e"
-yellow = "#d4b475"
-green = "#8faf77"
-teal = "#77c7af"
-sky = "#8fafd4"
-sapphire = "#8fafd4"
-blue = "#8fafd4"
-text = "#c8c8c8"
-subtext1 = "#a0a0a0"
-subtext0 = "#787878"
-overlay2 = "#585858"
-overlay1 = "#404040"
-overlay0 = "#303030"
-surface2 = "#262626"
-surface1 = "#1e1e1e"
-surface0 = "#1a1a1a"
-base = "#1a1a1a"
-mantle = "#161616"
-crust = "#131313"
