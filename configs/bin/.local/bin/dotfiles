@@ -1,41 +1,46 @@
 #!/usr/bin/env bash
 # dotfiles CLI — menu-driven management for your dotfiles
-# Usage: dotfiles [command]
-#   (no args)  → interactive menu
-#   theme      → switch themes
-#   update     → update system, plugins, tools
-#   install    → install additional tools
 
-set -e
+set -euo pipefail
 
-# Resolve symlink to find the actual dotfiles repo directory
 SELF="$(readlink -f "$0")"
 DOTFILES_DIR="$(cd "$(dirname "$SELF")/../../../.." && pwd)"
+INSTALL_DIR="$DOTFILES_DIR/install"
 
-# --- Header ---
+# shellcheck disable=SC1091
+source "$INSTALL_DIR/lib/os.sh"
+# shellcheck disable=SC1091
+source "$INSTALL_DIR/lib/ui.sh"
+
 show_header() {
-  echo ""
-  echo "  ╭─────────────────────────────────────╮"
-  echo "  │         d o t f i l e s             │"
-  echo "  ╰─────────────────────────────────────╯"
-  echo ""
+  ui_header
 }
 
-# --- Theme command ---
+run_profile() {
+  local profile="$1"
+
+  case "$profile" in
+    wsl) bash "$INSTALL_DIR/profiles/wsl.sh" ;;
+    linux) bash "$INSTALL_DIR/profiles/linux.sh" ;;
+    auto) run_profile "$(detect_os)" ;;
+    *)
+      echo "Unsupported install profile: $profile"
+      return 1
+      ;;
+  esac
+}
+
 cmd_theme() {
   bash "$DOTFILES_DIR/scripts/theme.sh" "$@"
 }
 
-# --- Update command ---
 cmd_update() {
-  echo "Starting system update..."
-  echo ""
+  echo "Starting update..."
 
-  # System packages
-  echo "Updating system packages..."
   if grep -qi microsoft /proc/version 2>/dev/null; then
     sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
   elif [ -f /etc/os-release ]; then
+    # shellcheck disable=SC1091
     . /etc/os-release
     case "$ID" in
       ubuntu|debian) sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y ;;
@@ -43,108 +48,116 @@ cmd_update() {
       fedora) sudo dnf upgrade -y ;;
     esac
   fi
-  echo "  ✓ System packages"
 
-  # Zinit plugins
-  if [ -n "$ZDOTDIR" ]; then
-    ZSH_CONFIG_DIR="$ZDOTDIR"
-  else
-    ZSH_CONFIG_DIR="$HOME/.config/zsh"
+  if command -v zsh >/dev/null 2>&1 && [ -f "$HOME/.config/zsh/.zshrc" ] && grep -q zinit "$HOME/.config/zsh/.zshrc"; then
+    zsh -i -c "zinit self-update; zinit update --all" 2>/dev/null || true
+    echo "  ✓ zinit plugins"
   fi
 
-  if [[ -f "$ZSH_CONFIG_DIR/.zshrc" ]] && grep -q "zinit" "$ZSH_CONFIG_DIR/.zshrc"; then
-    echo "Updating Zinit plugins..."
-    zsh -i -c "zinit self-update; zinit update --all" 2>/dev/null
-    echo "  ✓ Zinit plugins"
-  fi
-
-  # mise tools
-  if command -v mise &>/dev/null; then
-    echo "Updating mise tools..."
+  if command -v mise >/dev/null 2>&1; then
     mise up 2>/dev/null || true
     echo "  ✓ mise tools"
   fi
 
-  # TPM
   if [ -d "$HOME/.tmux/plugins/tpm" ]; then
-    echo "Updating tmux plugins..."
     "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
     "$HOME/.tmux/plugins/tpm/bin/update_plugins" all 2>/dev/null || true
     echo "  ✓ tmux plugins"
   fi
 
-  echo ""
-  echo "Update complete!"
+  echo "Update complete."
 }
 
-# --- Install command ---
+install_agents_menu() {
+  if ! command -v gum >/dev/null 2>&1; then
+    bash "$INSTALL_DIR/agents/all.sh"
+    return
+  fi
+
+  local choice
+  choice=$(gum choose \
+    "All" \
+    "pi" \
+    "claude" \
+    "codex" \
+    "gemini" \
+    "copilot" \
+    "opencode" \
+    "<< Back" \
+    --header "Install coding agents")
+
+  case "$choice" in
+    All) bash "$INSTALL_DIR/agents/all.sh" ;;
+    pi|claude|codex|gemini|copilot|opencode) bash "$INSTALL_DIR/agents/app-${choice}.sh" ;;
+    *) return 0 ;;
+  esac
+}
+
 cmd_install() {
-  if ! command -v gum &>/dev/null; then
-    echo "gum is required. Install it: sudo apt install gum"
+  if [ "${1:-}" = "--profile" ]; then
+    run_profile "${2:-auto}"
+    return
+  fi
+
+  if ! command -v gum >/dev/null 2>&1; then
+    echo "gum is required for interactive install menus."
+    echo "Run ./install.sh first."
     exit 1
   fi
 
-  CHOICES=(
-    "Dev Language      Install programming language via mise"
-    "Coding Agents     Install pi, claude, codex, gemini, opencode"
-    "<< Back           "
-  )
+  local choice
+  choice=$(gum choose \
+    "Full Setup" \
+    "Languages" \
+    "Coding Agents" \
+    "Theme" \
+    "Quit" \
+    --header "Install / setup")
 
-  CHOICE=$(gum choose "${CHOICES[@]}" --height 5 --header "Install additional tools")
-
-  if [[ "$CHOICE" == "<< Back"* ]] || [[ -z "$CHOICE" ]]; then
-    return 0
-  fi
-
-  INSTALLER=$(echo "$CHOICE" | awk -F ' {2,}' '{print $1}' | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
-
-  case "$INSTALLER" in
-    "dev-language")
-      bash "$DOTFILES_DIR/install/terminal/select-language.sh"
-      ;;
-    "coding-agents")
-      bash "$DOTFILES_DIR/install/terminal/agents.sh"
-      ;;
+  case "$choice" in
+    "Full Setup") run_profile auto ;;
+    "Languages") bash "$INSTALL_DIR/languages/select.sh" ;;
+    "Coding Agents") install_agents_menu ;;
+    "Theme") cmd_theme ;;
+    *) return 0 ;;
   esac
 }
 
-# --- Main menu ---
 show_menu() {
-  if ! command -v gum &>/dev/null; then
-    echo "gum is required for interactive menus. Install it: sudo apt install gum"
-    echo ""
-    echo "Available commands: dotfiles theme | dotfiles update | dotfiles install"
+  if ! command -v gum >/dev/null 2>&1; then
+    echo "gum is required for interactive menus. Run ./install.sh first."
     exit 1
   fi
 
-  SUB=$(gum choose "Theme" "Update" "Install" "Quit" --height 6 --header "What would you like to do?" | tr '[:upper:]' '[:lower:]')
+  local choice
+  choice=$(gum choose "Theme" "Update" "Install" "Quit" --header "What would you like to do?")
 
-  case "$SUB" in
-    theme) cmd_theme ;;
-    update) cmd_update ;;
-    install) cmd_install ;;
-    quit) return 0 ;;
+  case "$choice" in
+    Theme) cmd_theme ;;
+    Update) cmd_update ;;
+    Install) cmd_install ;;
+    *) return 0 ;;
   esac
 }
 
-# --- Entry point ---
-if [ $# -eq 0 ]; then
-  show_header
-  show_menu
-else
-  case "$1" in
-    theme) shift; cmd_theme "$@" ;;
-    update) cmd_update ;;
-    install) cmd_install ;;
-    *)
-      echo "Usage: dotfiles [theme|update|install]"
-      echo ""
-      echo "Commands:"
-      echo "  (none)    Interactive menu"
-      echo "  theme     Switch color theme"
-      echo "  update    Update system and tools"
-      echo "  install   Install additional tools"
-      exit 1
-      ;;
-  esac
-fi
+case "${1:-}" in
+  "")
+    show_header
+    show_menu
+    ;;
+  theme)
+    shift
+    cmd_theme "$@"
+    ;;
+  update)
+    cmd_update
+    ;;
+  install)
+    shift
+    cmd_install "$@"
+    ;;
+  *)
+    echo "Usage: dotfiles [theme|update|install]"
+    exit 1
+    ;;
+esac
