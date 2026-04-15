@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # mise helpers for language and Node-based CLI installs
 
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
 ensure_mise() {
   if command_exists mise; then
     return 0

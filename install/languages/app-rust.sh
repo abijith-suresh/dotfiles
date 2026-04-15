@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-bash -c "$(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs)" -- -y
-echo "Rust installed via rustup"
+
+install_dir="$(cd "$(dirname "$0")/.." && pwd)"
+
+# shellcheck disable=SC1091
+source "$install_dir/lib/mise.sh"
+
+ensure_mise_tool "rust@stable"
+echo "Rust installed via mise"

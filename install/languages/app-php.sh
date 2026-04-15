@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-sudo apt install -y php php-{curl,intl,mbstring,xml,zip} --no-install-recommends
+
+install_dir="$(cd "$(dirname "$0")/.." && pwd)"
+
+# shellcheck disable=SC1091
+source "$install_dir/lib/common.sh"
+
+ensure_sudo_access
+apt_install_if_missing php php-curl php-intl php-mbstring php-xml php-zip
+
 echo "PHP installed via apt"
