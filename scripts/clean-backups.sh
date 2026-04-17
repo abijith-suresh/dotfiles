@@ -24,20 +24,10 @@ auto_yes=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --dry-run)
-      dry_run=1
-      ;;
-    --yes)
-      auto_yes=1
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      usage >&2
-      exit 1
-      ;;
+    --dry-run) dry_run=1 ;;
+    --yes)     auto_yes=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *)         usage >&2; exit 1 ;;
   esac
   shift
 done
@@ -59,29 +49,36 @@ while IFS= read -r -d '' target; do
   if [ -d "$backup_dir" ]; then
     while IFS= read -r numbered_backup; do
       backups+=("$numbered_backup")
-    done < <(find "$backup_dir" -maxdepth 1 \( -type f -o -type l -o -type d \) -name "$backup_name.backup.*" | sort)
+    done < <(find "$backup_dir" -maxdepth 1 \( -type f -o -type l -o -type d \) \
+      -name "$backup_name.backup.*" | sort)
   fi
 done < <(list_target_paths "$DOTFILES_DIR" "${packages[@]}")
 
 if [ "${#backups[@]}" -eq 0 ]; then
-  echo "No dotfiles backups found."
+  ui_info "No dotfiles backups found."
   exit 0
 fi
 
 mapfile -t backups < <(printf '%s\n' "${backups[@]}" | awk '!seen[$0]++')
 
 if [ "$dry_run" -eq 1 ]; then
-  echo "Would remove the following backups:"
-  printf '  %s\n' "${backups[@]}"
+  ui_warn "Dry run — would remove the following backups:"
+  for b in "${backups[@]}"; do
+    printf '%s     %s%s\n' "$_UI_MUTED" "$b" "$_UI_RST"
+  done
   exit 0
 fi
 
+ui_section "Clean Backups"
+printf '%s  The following backups will be removed:%s\n' "$_UI_MUTED" "$_UI_RST"
+for b in "${backups[@]}"; do
+  printf '%s     %s%s\n' "$_UI_MUTED" "$b" "$_UI_RST"
+done
+echo ""
+
 if [ "$auto_yes" -ne 1 ]; then
-  echo "The following backups will be removed:"
-  printf '  %s\n' "${backups[@]}"
-  echo ""
   if ! ui_confirm "Delete these backup files?"; then
-    echo "Aborted."
+    ui_info "Aborted."
     exit 0
   fi
 fi
@@ -92,4 +89,4 @@ for backup in "${backups[@]}"; do
   count=$((count + 1))
 done
 
-echo "Removed $count backup(s)."
+ui_banner_success "Removed $count backup(s)"

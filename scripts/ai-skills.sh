@@ -4,100 +4,122 @@
 
 set -e
 
-# Array of skills to always have installed
+SELF="$(readlink -f "$0")"
+DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
+
+# shellcheck disable=SC1091
+source "$DOTFILES_DIR/install/lib/ui.sh"
+
+# ── Skills list ───────────────────────────────────────────────────────────────
 # Format: "owner/repo"
+
 SKILLS=(
   # Personal skills
   "abijith-suresh/skills"
-  
+
   # Essential community skills
   "vercel-labs/agent-skills"
   "anthropics/skills"
   "vercel-labs/agent-browser"
 )
 
+# ── Commands ──────────────────────────────────────────────────────────────────
+
 show_help() {
-  cat << EOF
+  if command -v gum >/dev/null 2>&1; then
+    gum style \
+      --border rounded \
+      --border-foreground "$UI_BLUE" \
+      --padding "0 2" \
+      "$(gum style --foreground "$UI_BLUE" --bold "  AI Skills Manager")" \
+      "" \
+      "$(printf '%s  Usage: %s{install|update|status|list|sync}%s' "$_UI_MUTED" "$_UI_ACCENT" "$_UI_RST")" \
+      "" \
+      "$(printf '%s  install%s   Install/update all tracked skills' "$_UI_ACCENT" "$_UI_RST")" \
+      "$(printf '%s  update%s    Update all installed skills to latest' "$_UI_ACCENT" "$_UI_RST")" \
+      "$(printf '%s  status%s    Show installed vs tracked' "$_UI_ACCENT" "$_UI_RST")" \
+      "$(printf '%s  list%s      Print the tracked skills list' "$_UI_ACCENT" "$_UI_RST")" \
+      "$(printf '%s  sync%s      Install missing, update existing' "$_UI_ACCENT" "$_UI_RST")"
+    echo ""
+  else
+    cat << EOF
 AI Skills Manager
 
-Usage: $(basename "$0") {install|update|status|list}
+Usage: $(basename "$0") {install|update|status|list|sync}
 
-Commands:
-  install    Install/update all skills in the hardcoded list
-  update     Update all installed skills to latest
-  status     Check which skills are installed
-  list       Show the hardcoded skills list
-  sync       Install missing skills, update existing ones
-
-Examples:
-  $(basename "$0") install    # First time setup
-  $(basename "$0") sync       # Daily use - ensures all skills present
+  install   Install/update all skills in the tracked list
+  update    Update all installed skills to latest
+  status    Check which skills are installed
+  list      Show the tracked skills list
+  sync      Install missing skills, update existing ones
 EOF
+  fi
 }
 
 install_skills() {
-  echo "Installing skills..."
+  ui_section "Installing skills"
   for skill in "${SKILLS[@]}"; do
-    echo "  → $skill"
+    ui_log info "Installing $skill"
     bunx skills add "$skill" --yes --global
+    ui_ok "$skill"
   done
-  echo "✓ All skills installed"
+  ui_banner_success "All skills installed"
 }
 
 update_skills() {
-  echo "Updating all skills..."
-  bunx skills update
-  echo "✓ Skills updated"
+  ui_section "Updating skills"
+  if command -v gum >/dev/null 2>&1; then
+    gum spin --spinner globe --title "Updating all skills..." --show-error -- \
+      bunx skills update
+  else
+    bunx skills update
+  fi
+  ui_banner_success "Skills updated"
 }
 
 show_status() {
-  echo "Installed skills:"
-  bunx skills list -g || echo "  (no skills installed)"
+  ui_section "Skills Status"
+
+  ui_log info "Installed skills:"
+  bunx skills list -g || ui_info "(no skills installed)"
+
   echo ""
-  echo "Tracked in script:"
+  ui_log info "Tracked in script:"
   for skill in "${SKILLS[@]}"; do
-    echo "  • $skill"
+    printf '%s     • %s%s\n' "$_UI_MUTED" "$skill" "$_UI_RST"
   done
 }
 
 show_list() {
-  echo "Skills tracked in this script:"
+  ui_section "Tracked Skills"
   for skill in "${SKILLS[@]}"; do
-    echo "  • $skill"
+    printf '%s     • %s%s\n' "$_UI_MUTED" "$skill" "$_UI_RST"
   done
 }
 
 sync_skills() {
-  echo "Syncing skills..."
-  # This installs missing ones and updates existing
+  ui_section "Syncing skills"
   for skill in "${SKILLS[@]}"; do
-    echo "  → Ensuring: $skill"
-    bunx skills add "$skill" --yes --global 2>/dev/null || bunx skills update "$skill" 2>/dev/null || true
+    ui_log info "Ensuring $skill"
+    bunx skills add "$skill" --yes --global 2>/dev/null \
+      || bunx skills update "$skill" 2>/dev/null \
+      || true
+    ui_ok "$skill"
   done
-  echo "✓ Sync complete"
+  ui_banner_success "Sync complete"
 }
 
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+
 case "${1:-}" in
-  install)
-    install_skills
-    ;;
-  update)
-    update_skills
-    ;;
-  status)
-    show_status
-    ;;
-  list)
-    show_list
-    ;;
-  sync)
-    sync_skills
-    ;;
-  help|--help|-h|"")
-    show_help
-    ;;
+  install)         install_skills ;;
+  update)          update_skills ;;
+  status)          show_status ;;
+  list)            show_list ;;
+  sync)            sync_skills ;;
+  help|--help|-h|"") show_help ;;
   *)
-    echo "Unknown command: $1"
+    ui_error "Unknown command: $1"
     show_help
     exit 1
     ;;

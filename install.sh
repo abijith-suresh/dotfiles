@@ -10,8 +10,7 @@ INSTALL_DIR="$DOTFILES_DIR/install"
 source "$INSTALL_DIR/lib/common.sh"
 # shellcheck disable=SC1091
 source "$INSTALL_DIR/lib/os.sh"
-# shellcheck disable=SC1091
-source "$INSTALL_DIR/lib/ui.sh"
+# ui.sh is already sourced transitively through common.sh
 
 DOTFILES_CLI="$DOTFILES_DIR/configs/bin/.local/bin/dotfiles"
 
@@ -41,50 +40,56 @@ ui_header
 platform="$(detect_os)"
 case "$platform" in
   wsl)
-    echo "  Platform: WSL Ubuntu"
+    printf '%s     Platform detected: %sWSL Ubuntu%s\n\n' \
+      "$_UI_MUTED" "$_UI_BLUE" "$_UI_RST"
     ;;
   linux)
-    echo "  Platform: Native Ubuntu/Debian"
+    printf '%s     Platform detected: %sNative Ubuntu / Debian%s\n\n' \
+      "$_UI_MUTED" "$_UI_BLUE" "$_UI_RST"
     ;;
   arch)
-    echo "Arch support is not implemented yet."
+    ui_error "Arch support is not implemented yet."
     exit 1
     ;;
   fedora)
-    echo "Fedora support is not implemented yet."
+    ui_error "Fedora support is not implemented yet."
     exit 1
     ;;
   macos)
-    echo "macOS support is not implemented yet."
+    ui_error "macOS support is not implemented yet."
     exit 1
     ;;
   *)
-    echo "Unsupported platform."
+    ui_error "Unsupported platform."
     exit 1
     ;;
 esac
 
-echo ""
 if ! ui_confirm "Proceed with bootstrap?"; then
-  echo "Aborted."
+  ui_info "Aborted."
   exit 0
 fi
 
 ensure_sudo_access
 
-step "Bootstrapping this machine"
+ui_section "Bootstrapping"
+
+# Steps 1 and 3 are local/config — use dot spinner
+# Step 2 is a download — use globe spinner
+export DOTFILES_SPINNER=dot
 run_named_script "[1/3] Installing bootstrap dependencies" "$INSTALL_DIR/bootstrap/linux-apt.sh"
+export DOTFILES_SPINNER=globe
 run_named_script "[2/3] Installing gum" "$INSTALL_DIR/tools/app-gum.sh"
+export DOTFILES_SPINNER=dot
 run_named_script "[3/3] Making dotfiles CLI available" "$INSTALL_DIR/tools/app-bin.sh"
 
-ok "Bootstrap complete"
-info "Use 'dotfiles install' for the full setup flow."
-info "Use 'dotfiles theme' or 'dotfiles update' later from the CLI."
-
+ui_banner_success "Bootstrap complete" "dotfiles CLI is ready"
+ui_info "Use 'dotfiles install' for the full setup flow."
+ui_info "Use 'dotfiles theme' or 'dotfiles update' later from the CLI."
 echo ""
+
 if ui_confirm "Launch the dotfiles installer now?"; then
   bash "$DOTFILES_CLI" install
 else
-  echo "Next steps:"
-  echo "  ~/.local/bin/dotfiles install"
+  ui_info "When ready, run:  ~/.local/bin/dotfiles install"
 fi

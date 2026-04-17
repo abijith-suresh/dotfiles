@@ -6,8 +6,7 @@ base_dir="$(cd "$(dirname "$0")" && pwd)"
 
 # shellcheck disable=SC1091
 source "$install_dir/lib/common.sh"
-# shellcheck disable=SC1091
-source "$install_dir/lib/ui.sh"
+# ui.sh is auto-sourced by common.sh
 
 choices=("Node.js" "Bun" "Java" "Python" "Go" "Rust")
 
@@ -42,8 +41,8 @@ selected=()
 if [ "$#" -gt 0 ]; then
   for arg in "$@"; do
     normalized="$(normalize_language "$arg")" || {
-      echo "Unknown language: $arg" >&2
-      echo "Available: node bun java python go rust" >&2
+      ui_error "Unknown language: $arg"
+      ui_info "Available: node bun java python go rust"
       exit 1
     }
 
@@ -68,8 +67,11 @@ mapfile -t selected < <(printf '%s\n' "${selected[@]}" | awk '!seen[$0]++')
 total="${#selected[@]}"
 index=0
 
+export DOTFILES_SPINNER=globe
 step "Installing programming languages"
 for choice in "${selected[@]}"; do
   index=$((index + 1))
   run_language "$choice" "[$index/$total] Installing $choice"
 done
+
+ui_banner_success "Languages installed" "$(printf '%s' "${selected[*]}")"

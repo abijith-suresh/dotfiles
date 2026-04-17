@@ -22,7 +22,7 @@ to_dir_name() {
 
 restow_theme_packages() {
   if ! command -v stow >/dev/null 2>&1; then
-    echo "stow not found — updated repo files but did not restow live config"
+    ui_warn "stow not found — updated repo files but did not restow live config"
     return 0
   fi
 
@@ -30,11 +30,11 @@ restow_theme_packages() {
 
   (
     cd "$DOTFILES_DIR/configs"
-    stow_restow starship
-    stow_restow nvim
-    stow_restow btop
-    stow_restow zellij
-    stow_restow alacritty
+    stow_restow starship && ui_ok "Stowed starship"
+    stow_restow nvim     && ui_ok "Stowed nvim"
+    stow_restow btop     && ui_ok "Stowed btop"
+    stow_restow zellij   && ui_ok "Stowed zellij"
+    stow_restow alacritty && ui_ok "Stowed alacritty"
   )
 }
 
@@ -60,53 +60,53 @@ apply_theme() {
   local theme_dir="$THEMES_DIR/$theme_name"
 
   if [ ! -d "$theme_dir" ]; then
-    echo "Theme not found: $theme_name"
+    ui_error "Theme not found: $theme_name"
     return 1
   fi
 
+  ui_section "Applying theme: $theme_name"
+
   echo "$theme_name" > "$CURRENT_THEME_FILE"
+  ui_ok "Updated themes/current-theme"
 
   # Starship
   cp "$theme_dir/starship.toml" "$DOTFILES_DIR/configs/starship/.config/starship.toml"
+  ui_ok "starship.toml"
 
   # Neovim
   mkdir -p "$DOTFILES_DIR/configs/nvim/.config/nvim/lua/plugins"
   cp "$theme_dir/neovim.lua" "$DOTFILES_DIR/configs/nvim/.config/nvim/lua/plugins/theme.lua"
+  ui_ok "nvim theme.lua"
 
   # btop
   mkdir -p "$DOTFILES_DIR/configs/btop/.config/btop/themes"
   cp "$theme_dir/btop.theme" "$DOTFILES_DIR/configs/btop/.config/btop/themes/current.theme"
+  ui_ok "btop current.theme"
 
   # Zellij
   mkdir -p "$DOTFILES_DIR/configs/zellij/.config/zellij/themes"
   render_zellij_theme "$theme_dir/zellij.kdl" "$DOTFILES_DIR/configs/zellij/.config/zellij/themes/current.kdl"
+  ui_ok "zellij current.kdl"
 
   # Alacritty
   mkdir -p "$DOTFILES_DIR/configs/alacritty/.config/alacritty"
   cp "$theme_dir/alacritty.toml" "$DOTFILES_DIR/configs/alacritty/.config/alacritty/theme.toml"
+  ui_ok "alacritty theme.toml"
 
+  ui_section "Restowing packages"
   restow_theme_packages
 
-  echo "Applied theme: $theme_name"
-  echo "Repo-backed theme state updated in configs/ and themes/current-theme"
+  ui_banner_success "Theme applied: $theme_name" "configs updated · packages restowed"
 }
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
 
 if [ -n "${1:-}" ]; then
   apply_theme "$(to_dir_name "$1")"
   exit 0
 fi
 
-if ! command -v gum >/dev/null 2>&1; then
-  echo "gum is required for interactive theme selection"
-  echo "Available themes:"
-  for name in "${THEME_NAMES[@]}"; do
-    echo "  - $(to_dir_name "$name")"
-  done
-  echo ""
-  echo "Backups created during theme conflict handling use the suffix '.backup'."
-  exit 1
-fi
-
-selected=$(gum choose "${THEME_NAMES[@]}" --header "Choose your theme")
+# Interactive: show swatch picker, then apply
+selected="$(ui_swatch_picker)"
 [ -z "$selected" ] && exit 0
 apply_theme "$(to_dir_name "$selected")"
