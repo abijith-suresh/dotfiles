@@ -1,156 +1,267 @@
 # Dotfiles
 
-My personal dotfiles for WSL Ubuntu and native Ubuntu/Debian Linux.
-Managed with [GNU Stow](https://www.gnu.org/software/stow/) for symlink management.
-
----
-
-## Table of Contents
-
-- [Structure](#structure)
-- [Quick Start](#quick-start)
-- [Supported Platforms](#supported-platforms)
-- [Configs](#configs)
-- [Scripts](#scripts)
-- [Troubleshooting](#troubleshooting)
-
----
-
-## Structure
-
-```
-dotfiles/
-├── bootstrap.sh         # One-shot setup script (run this first)
-├── configs/             # Config files organized by app (GNU Stow packages)
-│   ├── bat/             # bat (cat replacement)
-│   ├── bash/            # Bash shell
-│   ├── fzf/             # fzf fuzzy finder
-│   ├── git/             # Git (XDG: ~/.config/git/)
-│   ├── nvim/            # Neovim
-│   ├── ripgrep/         # ripgrep
-│   ├── starship/        # Starship prompt
-│   ├── tmux/            # tmux
-│   └── zsh/             # Zsh (XDG: ~/.config/zsh/)
-├── install/
-│   └── linux.sh         # Ubuntu/Debian package installer
-├── scripts/
-│   └── update.sh        # Update plugins and tools
-└── wallpapers/
-```
+Personal dotfiles for WSL Ubuntu and native Ubuntu/Debian Linux.
+Managed with [GNU Stow](https://www.gnu.org/software/stow/) and organized around one primary command: `dotfiles`.
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/abijith-suresh/dotfiles.git ~/Dotfiles
-cd ~/Dotfiles
-./bootstrap.sh
+git clone https://github.com/abijith-suresh/dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
+./install.sh
 ```
 
-The bootstrap script will:
-1. Install packages via `apt`
-2. Install [Zinit](https://github.com/zdharma-continuum/zinit) plugin manager
-3. Create XDG base directories
-4. Stow all configs
-5. Set zsh as your default shell (if not already)
+### Install flow on a fresh system
 
-**Flags:**
-```bash
-./bootstrap.sh --dry-run        # Preview steps without making changes
-./bootstrap.sh --skip-packages  # Skip apt install, stow only
-```
+`install.sh` is intentionally small.
+
+It does only enough to bootstrap the real workflow:
+1. Detect platform (`wsl` or `linux`)
+2. Install minimal prerequisites (`git`, `curl`, `wget`, `jq`, `stow`, `gum`)
+3. Stow the `bin` package so the `dotfiles` CLI is available
+4. Optionally launch the interactive `dotfiles install` flow
+
+`install.sh` does **not** force the full profile anymore.
+It bootstraps the machine, exposes the CLI, and leaves the real setup to `dotfiles install`.
 
 ---
 
-## Supported Platforms
+## The `dotfiles` command
 
-| Platform | Status |
-|---|---|
-| Ubuntu (WSL) | Supported |
-| Ubuntu / Debian (native) | Supported |
-| macOS | Planned — [#11](https://github.com/abijith-suresh/dotfiles/issues/11) |
-| Fedora | Planned — [#12](https://github.com/abijith-suresh/dotfiles/issues/12) |
-| Arch Linux | Planned — [#13](https://github.com/abijith-suresh/dotfiles/issues/13) |
-
----
-
-## Configs
-
-All configs follow the [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html) standard.
-
-### Stow commands
+Once installed, the main workflow is:
 
 ```bash
-cd configs
-
-# Individual packages
-stow zsh
-stow git
-stow bat
-stow starship
-stow nvim
-stow fzf
-stow ripgrep
-stow tmux
-
-# All at once
-stow zsh git bat starship nvim fzf ripgrep tmux
+dotfiles                    # Interactive menu
+dotfiles install            # Category-based installer
+dotfiles install everything # Base + terminal tools + agents + default theme
+dotfiles theme              # Switch the active theme
+dotfiles update             # Update system and managed tools
+dotfiles clean-backups      # Delete dotfiles-created .backup files
 ```
 
-### zsh
+This is the preferred interface after the first bootstrap.
 
-- Entry point: `~/.zshenv` → sets `ZDOTDIR=$HOME/.config/zsh` and XDG vars
-- Main config: `~/.config/zsh/.zshrc`
-- Aliases: `~/.config/zsh/.zsh_aliases`
-- Functions: `~/.config/zsh/.zsh_functions`
-- Plugin manager: [Zinit](https://github.com/zdharma-continuum/zinit)
-- Prompt: [Starship](https://starship.rs/)
+### Install categories
 
-### git
+`dotfiles install` is category-first:
+- Base Setup
+- Terminal Tools
+- Languages
+- Coding Agents
+- Theme
+- Clean Backups
+- Install Everything
 
-- Config: `~/.config/git/config`
-- Global ignore: `~/.config/git/ignore`
-
-### Neovim
-
-Minimal setup — 7 plugins:
-
-| Plugin | Purpose |
-|---|---|
-| catppuccin/nvim | Colorscheme (Mocha) |
-| nvim-treesitter | Syntax highlighting |
-| telescope.nvim | Fuzzy finder |
-| nvim-lspconfig | LSP client |
-| mason.nvim | LSP server installer |
-| mason-lspconfig | LSP bridge |
-| nvim-cmp | Completion |
-
-Auto-installed LSP servers: `lua_ls`, `pyright`, `ts_ls`, `html`, `cssls`
+`Install Everything` intentionally excludes languages.
 
 ---
 
-## Scripts
+## Themes
 
-- `scripts/update.sh` — Update Zinit plugins, Starship, and system packages
+Themes are **repo-backed**, not just machine-local.
+
+When you run:
+
+```bash
+dotfiles theme tokyo-night
+```
+
+it updates:
+- `themes/current-theme`
+- tracked config outputs inside `configs/`
+- then re-stows the affected packages
+
+So the repo remains the source of truth for the active theme.
+
+### Themed tools
+
+Themes currently apply to:
+- `starship`
+- `neovim`
+- `btop`
+- `zellij`
+- `alacritty`
+
+### Available themes
+
+- catppuccin
+- tokyo-night
+- nord
+- gruvbox
+- everforest
+- kanagawa
+- rose-pine
+- matte-black
+- osaka-jade
+- ristretto
+
+---
+
+## Repository structure
+
+```text
+dotfiles/
+├── install.sh                 # Minimal bootstrap entrypoint
+├── configs/                   # GNU Stow packages (source of truth for deployed config)
+│   ├── alacritty/
+│   ├── bash/
+│   ├── bat/
+│   ├── bin/                   # ~/.local/bin/dotfiles
+│   ├── btop/
+│   ├── fastfetch/
+│   ├── fzf/
+│   ├── git/
+│   ├── nvim/
+│   ├── ripgrep/
+│   ├── starship/
+│   ├── tmux/
+│   ├── vim/
+│   ├── zellij/
+│   └── zsh/
+├── install/
+│   ├── bootstrap/             # Minimal host bootstrapping
+│   ├── categories/            # Category orchestration scripts
+│   ├── lib/                   # Shared helpers
+│   ├── profiles/              # Platform entrypoints for full install
+│   ├── tools/                 # Per-app/per-tool installers
+│   ├── agents/                # Per-agent installers
+│   └── languages/             # Per-language installers + selector
+├── scripts/
+│   ├── clean-backups.sh       # Removes managed .backup files
+│   ├── theme.sh               # Repo-backed theme application
+│   ├── update.sh              # Delegates to dotfiles update
+│   └── generate-starship-themes.sh
+├── themes/
+│   ├── current-theme          # Active theme state
+│   └── <theme>/               # Theme source assets
+├── README.md
+└── AGENTS.md
+```
+
+---
+
+## Tooling defaults
+
+### Shell
+- Primary shell: `zsh`
+- Bash fallback config is also maintained
+- Prompt: `starship`
+- Plugin manager: `zinit`
+- Runtime/version manager: `mise`
+
+### Terminal tools
+- Search: `ripgrep`
+- Fuzzy finder: `fzf`
+- File finder: `fd`
+- File listing: `eza`
+- System info: `fastfetch`
+- System monitor: `btop`
+- Git TUI: `lazygit`
+- Docker TUI: `lazydocker`
+- GitHub CLI: `gh`
+
+### Multiplexers
+- `tmux` (kept)
+- `zellij` (added from omakub-inspired direction)
+
+---
+
+## Language management
+
+`mise` is the single version manager.
+
+Examples:
+
+```bash
+mise use --global node@lts
+mise use --global java@latest
+mise use --global python@latest
+mise use --global go@latest
+```
+
+The interactive installer can also set these up for you via:
+
+```bash
+dotfiles install
+```
+
+---
+
+## Coding agents
+
+Coding agents are split into per-agent installers under `install/agents/`.
+
+Available installers include:
+- pi
+- claude
+- codex
+- gemini
+- copilot
+- opencode
+
+The category installer will install them as a group through:
+
+```bash
+dotfiles install
+```
+
+---
+
+## Extending to new distros / OSes
+
+The repo is structured so future platform work is additive:
+
+- `install/bootstrap/` for package-manager-level bootstrapping
+- `install/profiles/` for platform orchestration
+- `install/tools/`, `install/agents/`, `install/languages/` for reusable installers
+
+Planned future targets:
+- Arch Linux
+- Fedora
+- macOS
 
 ---
 
 ## Troubleshooting
 
-### WSL: `compinit: no such file or directory: /usr/share/zsh/vendor-completions/_docker`
+### WSL Docker completion bug
 
-**Cause:** Docker Desktop's WSL integration writes a completion file into WSL. When Docker
-Desktop updates or its WSL integration changes state, the file becomes a broken symlink.
-`compinit` reads the stale cache and fails to find the file on disk.
+Broken Docker completion symlinks under WSL can interfere with zsh startup.
+The WSL install profile removes the common broken file and clears `.zcompdump*`.
 
-**Fix:** `bootstrap.sh` (and `install/linux.sh`) automatically remove the broken file and
-clear the completion cache:
+### Stow conflicts
+
+The install flow now auto-backs up many unmanaged file conflicts as `*.backup`
+before re-stowing packages.
+
+If a conflict involves a directory shape mismatch, you may still need to resolve it manually.
+Example:
 
 ```bash
-sudo rm -f /usr/share/zsh/vendor-completions/_docker
-rm -f ~/.zcompdump*
+mv ~/.config/btop/btop.conf ~/.config/btop/btop.conf.backup
+cd ~/.dotfiles/configs
+stow --restow btop
 ```
 
-Docker tab-completion continues to work because `.zshrc` loads it via Zinit from Docker's
-official GitHub repo — no dependency on Docker Desktop's WSL integration.
+### Theme switching and backups
+
+If `dotfiles theme` or `dotfiles install` encounters unmanaged files for managed targets,
+it may back them up as `*.backup` before re-stowing.
+
+After testing, you can remove those backups with:
+
+```bash
+dotfiles clean-backups
+```
+
+---
+
+## Philosophy
+
+- one primary workflow: `dotfiles`
+- repo-backed state instead of hidden machine-only state
+- GNU Stow as the deployment model
+- modular install scripts
+- easy future extension to other distros and operating systems

@@ -1,244 +1,127 @@
 # AGENTS.md - Dotfiles Repository Guide
 
-This guide is for agentic coding assistants working in this personal dotfiles repository. It covers installation scripts, code style conventions, and repository structure.
+This repository is a GNU Stow-based dotfiles system with repo-backed theme state and a modular install architecture.
 
-## Repository Overview
+## Core rules
 
-This is a personal dotfiles repository managed with GNU Stow for Unix-like systems (Linux/macOS) and PowerShell scripts for Windows. It contains configuration files for shell environments, editors, terminal tools, and development utilities.
+1. **`configs/` is the source of truth for deployed configuration**
+   - If a file should exist on the machine via Stow, its authoritative source lives in `configs/`.
 
-**Primary Purpose**: Manage and version control personal configuration files across multiple machines and operating systems.
+2. **`themes/` contains theme source assets, not deployed config**
+   - `themes/<theme>/...` are inputs
+   - `scripts/theme.sh` writes the active outputs into `configs/`
+   - `themes/current-theme` stores the selected theme name
 
-## Directory Structure
+3. **Do not reintroduce machine-only theme writes as the primary mechanism**
+   - Theme switching should update repo-backed config first, then re-stow.
 
-```
+4. **Install architecture is layered**
+   - `install/bootstrap/` → minimal host bootstrap
+   - `install/categories/` → category orchestration scripts
+   - `install/lib/` → shared helpers
+   - `install/profiles/` → platform entrypoints for full setup
+   - `install/tools/` → per-tool/per-app installers
+   - `install/agents/` → per-agent installers
+   - `install/languages/` → per-language installers
+
+## Directory map
+
+```text
 dotfiles/
-├── configs/          # All configuration files organized by application (for GNU Stow)
-│   ├── bash/        # Bash shell configuration
-│   ├── bat/         # bat (cat replacement) config
-│   ├── git/         # Git configuration
-│   ├── nvim/        # Neovim editor config (Lua-based)
-│   ├── powershell/  # PowerShell profile
-│   ├── starship/    # Starship prompt config
-│   └── zsh/         # Zsh shell configuration
-├── install/         # OS-specific install scripts
-│   ├── wsl.sh      # Ubuntu WSL package installer
-│   └── windows.ps1 # Windows package manager (winget) script
-├── scripts/         # Utility scripts
-│   └── update.sh   # System and plugin updater
-└── wallpapers/      # Visual assets
+├── install.sh                 # minimal bootstrap entrypoint
+├── configs/                   # stow packages
+├── install/
+│   ├── bootstrap/
+│   ├── categories/
+│   ├── lib/
+│   ├── profiles/
+│   ├── tools/
+│   ├── agents/
+│   └── languages/
+├── scripts/
+│   ├── clean-backups.sh
+│   ├── theme.sh
+│   ├── update.sh
+│   └── generate-starship-themes.sh
+├── themes/
+│   ├── current-theme
+│   └── <theme>/
+└── README.md / AGENTS.md
 ```
 
-## Installation & Setup Commands
+## What is generated vs hand-maintained
 
-### Deploy Configurations (GNU Stow)
-```bash
-cd dotfiles/configs
-stow <package_name>  # e.g., stow zsh bash git starship nvim tmux
+### Hand-maintained
+- Most files under `configs/`
+- Install scripts under `install/`
+- Theme source assets under `themes/<theme>/`
 
-# Deploy all configs
-stow */
+### Generated / rewritten by theme switching
+These are still repo-backed and tracked, but are updated by `scripts/theme.sh`:
+- `configs/starship/.config/starship.toml`
+- `configs/nvim/.config/nvim/lua/plugins/theme.lua`
+- `configs/btop/.config/btop/themes/current.theme`
+- `configs/zellij/.config/zellij/themes/current.kdl`
+- `configs/alacritty/.config/alacritty/theme.toml`
+- `themes/current-theme`
 
-# Remove a config
-stow -D <package_name>
-```
+## Shell / script conventions
 
-### Install System Packages
+- Use `#!/usr/bin/env bash` for scripts unless there is a strong reason not to
+- Prefer `set -euo pipefail`
+- Keep scripts idempotent where possible
+- Centralize shared helpers in `install/lib/`
+- Prefer one responsibility per script
+- Use clear section comments only when helpful; avoid noise
 
-**Ubuntu/WSL:**
-```bash
-./install/wsl.sh
-```
-Installs: bat, btop, eza, fastfetch, fzf, git, htop, neovim, ripgrep, tmux, tree, zoxide, zsh
+## Stow conventions
 
-**Windows:**
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force
-.\install\windows.ps1
-```
-Installs via winget: Chrome, Discord, Docker, Git, Neovim, VSCode, Obsidian, Starship, and more.
+- `configs/.stowrc` sets target `~`
+- Stow packages should map cleanly onto XDG locations whenever possible
+- Do not create hidden one-off deployment paths outside `configs/`
+- If a tool is part of the managed system, prefer a Stow package over ad hoc copying
+- Unmanaged conflicts should be backed up next to the target as `*.backup`
+- Backup cleanup should only delete backups for known managed targets
 
-### Update System & Configs
-```bash
-./scripts/update.sh
-```
-Updates APT packages, Zinit plugins, and performs system maintenance.
+## Theme system conventions
 
-## Code Style Guidelines
+- Adding a new theme means adding a complete directory under `themes/<name>/`
+- Keep theme directory contents consistent across themes
+- If a new themed tool is added, theme switching must remain repo-backed
+- Do not hardcode a theme in configs when it should be generated from the active theme
 
-### Shell Scripts (Bash/Zsh)
+## Install flow conventions
 
-**File Headers:**
-- Include shebang: `#!/bin/bash` or `#!/usr/bin/env bash`
-- Add brief description in comments
-- Use `set -e` for error handling in critical scripts
+- `install.sh` should stay minimal and two-phase
+- The long-running setup flow belongs in `dotfiles install` / `install/categories/`
+- The install menu should stay category-first even if the implementation is app-based underneath
+- `Install Everything` should exclude languages
+- Per-tool installers should live in `install/tools/app-*.sh`
+- Per-agent installers should live in `install/agents/app-*.sh`
+- Per-language installers should live in `install/languages/app-*.sh`
+- Installer and maintenance flows should remain idempotent on an existing WSL machine
 
-**Formatting:**
-- 2 spaces for indentation (NOT tabs)
-- Use lowercase for variable names: `packages=()`, `app_name="value"`
-- Quote all variables: `"$variable"` not `$variable`
-- Use arrays for lists: `packages=(bat btop eza)`
+## Important constraints
 
-**Functions:**
-```bash
-# Function description
-function_name() {
-  local variable="value"
-  command "$variable"
-}
-```
+- Never overwrite user-specific git identity without explicit instruction
+- Keep future distro/OS support in mind when introducing assumptions
+- Avoid broad `.gitignore` patterns that hide legitimate tracked files
+- Prefer explicit paths and explicit ownership of generated files
 
-**Error Handling:**
-- Use `|| { echo "Error message"; continue; }` for non-critical failures
-- Use `set -e` at start for critical scripts
-- Provide informative error messages
+## Testing expectations for agents
 
-**Comments:**
-- Use `# ---` for section headers
-- Comment non-obvious logic
-- Keep inline comments concise
+Before finishing a substantial change, try to validate with:
+- `bash -n` on all changed shell scripts
+- `zsh -n` on zsh config changes
+- `stow -n -v <package>` where relevant
+- non-interactive command checks for `dotfiles`, `theme.sh`, and install/profile entrypoints
 
-### Lua (Neovim Config)
+## Current architecture intent
 
-**File Organization:**
-- Core settings: `lua/core/` (options.lua, keymaps.lua)
-- Plugins: `lua/plugins/` (one file per plugin/feature)
-- LSP config: `lua/plugins/lsp/`
-
-**Formatting:**
-- 2 spaces for indentation (NOT tabs)
-- Use double quotes for strings: `"string"`
-- Comment structure:
-  ```lua
-  -- Section description
-  local variable = value -- inline comment
-  ```
-
-**Module Structure:**
-```lua
--- File: lua/plugins/example.lua
-return {
-  "author/plugin-name",
-  event = { "BufReadPre", "BufNewFile" },
-  dependencies = {},
-  config = function()
-    -- Plugin configuration
-  end,
-}
-```
-
-**Settings:**
-- Use `vim.opt` for options: `vim.opt.tabstop = 2`
-- Use `vim.keymap` for keymaps
-- Group related settings with comments
-
-### PowerShell Scripts
-
-**Formatting:**
-- Use PascalCase for function names: `Update-Environment`
-- Use proper capitalization: `$ErrorActionPreference`
-- 4 spaces for indentation in functions
-- Section headers: `# --------------------------------------`
-
-**Error Handling:**
-- Set `$ErrorActionPreference = "Stop"` for critical scripts
-- Use try-catch blocks with informative messages
-- Use `-ErrorAction SilentlyContinue` for optional imports
-
-**Functions:**
-```powershell
-function Function-Name {
-    param([string]$parameter)
-    # Function body
-}
-```
-
-## Git Configuration Standards
-
-**Default Branch:** `main`
-
-**Commit Style:**
-- Use imperative mood: "Add feature" not "Added feature"
-- Keep first line under 72 characters
-- Reference issues when applicable
-
-**Git Workflow:**
-- Auto-setup remote on push: enabled
-- Rebase on pull: enabled
-- Auto-stash during rebase: enabled
-- Follow tags on push: enabled
-
-## Common Aliases
-
-### Shell (Bash/Zsh)
-```bash
-ls → eza --color=auto
-cat → bat
-cd → z (zoxide)
-v → nvim
-gs → git status
-gc → git commit -m
-```
-
-### Git Shortcuts
-```bash
-gs  = git status
-ga  = git add
-gc  = git commit -m
-gp  = git push
-gl  = git pull / git log (context-dependent)
-gco = git checkout
-gb  = git branch
-```
-
-## Testing & Validation
-
-**No formal test suite**, but validation methods:
-
-1. **Shell Scripts:** Run with `bash -n script.sh` to check syntax
-2. **Stow Deployment:** Use `stow -n <package>` for dry-run
-3. **Manual Testing:** Deploy configs in a test environment before production use
-
-## Important Notes for Agents
-
-1. **Never modify user-specific data** in .gitconfig (name, email)
-2. **Preserve exact indentation** when editing config files
-3. **Test scripts in WSL/Ubuntu environment** - primary target platform
-4. **Don't break existing aliases** - users rely on muscle memory
-5. **Maintain GNU Stow compatibility** - proper directory structure in configs/
-6. **Check dependencies** before adding new tools to install scripts
-7. **Keep shell startup fast** - avoid expensive operations in .bashrc/.zshrc
-8. **Document breaking changes** clearly in commit messages
-
-## Editor Configuration (Neovim)
-
-- Plugin manager: **lazy.nvim**
-- Indentation: **2 spaces**, expand tabs
-- Line numbers: relative + absolute on cursor line
-- LSP servers: lua_ls, tsserver, html, cssls, tailwindcss, emmet_ls, pyright
-- Use system clipboard by default
-- No swap files
-
-## Platform-Specific Notes
-
-**WSL (Primary Target):**
-- Ubuntu-based
-- Uses Zinit for Zsh plugin management
-- Starship prompt for both Bash and Zsh
-- Integration with Windows filesystem expected
-
-**Windows:**
-- PowerShell profile with posh-git
-- winget for package management
-- Git Bash compatibility maintained
-
-## File Encoding & Line Endings
-
-- **Unix files**: LF line endings
-- **Windows files**: CRLF acceptable for .ps1 files
-- **Encoding**: UTF-8 without BOM preferred
-
----
-
-**Last Updated**: 2026-01-17
-**Maintained by**: Abijith Suresh
-**Repository**: Personal dotfiles configuration
+This repo is moving toward:
+- one user-facing command: `dotfiles`
+- repo-backed active theme state
+- category-first install UX backed by per-app installer scripts
+- clean progress-oriented install feedback
+- modular, extensible install logic
+- clean future extension for Arch, Fedora, macOS, and desktop Linux variants

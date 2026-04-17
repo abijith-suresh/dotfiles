@@ -1,49 +1,39 @@
 # ~/.config/zsh/.zsh_aliases
 # ============================
-# Shell Aliases
+# Minimal alias set — use lazygit for anything complex
 # ============================
 
 # --- File Listing (eza) ---
 alias ls='eza --icons --group-directories-first'
 alias ll='eza -lh --icons --git --group-directories-first'
 alias la='eza -lah --icons --git --group-directories-first'
-alias lt='eza --tree --icons --level=2'
+alias lt='eza --tree --icons --level=2 --long --git'
 
 # --- Replacements ---
-alias grep='grep --color=auto'
 alias cat='bat'
 alias mkdir='mkdir -pv'
 alias cd='z'
+alias grep='grep --color=auto'
 
 # --- Navigation ---
 alias ..='cd ..'
 alias ...='cd ../..'
+alias ....='cd ../../..'
 
 # --- Shortcuts ---
 alias c='clear'
-alias v='nvim'
 alias please='sudo'
 alias :q='exit'
 
-# --- Git ---
-alias gs='git status'
-alias gco='git checkout'          # Legacy checkout (file restore, branch switch, etc.)
-alias gsw='git switch'            # Modern branch switching (replaces checkout for branches)
-alias gswc='git switch -c'        # Create and switch to new branch
-alias gl='git pull'
-alias gp='git push'
-alias ga='git add'
-alias gc='git commit -m'
+# --- Git (faster than opening lazygit for these) ---
+alias g='git'
 alias gcm='git commit -m'
-alias gca='git commit --amend'
-alias gb='git branch'
-alias gd='git diff'
-alias gds='git diff --staged'
-alias glog='git log --oneline --graph --decorate'
-alias grb='git rebase'
-alias gsta='git stash'
-alias gstp='git stash pop'
-alias gcl='git clone'
+alias gcam='git commit -a -m'
+alias gcad='git commit -a --amend'
+alias gp='git push'
+alias gl='git pull'
 
-# --- Code Analysis ---
-alias cloc='cloc --vcs=git'       # Count lines of code, respecting .gitignore
+# --- Tools ---
+alias lzg='lazygit'
+alias lzd='lazydocker'
+# n is defined as a function in .zsh_functions
