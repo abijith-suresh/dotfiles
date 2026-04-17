@@ -20,6 +20,7 @@ fi
 ensure_sudo_access
 
 step "Creating XDG directories"
+export DOTFILES_SPINNER=dot
 for dir in \
   "$HOME/.config" \
   "$HOME/.local/bin" \
@@ -32,14 +33,18 @@ for dir in \
 done
 
 step "Installing base setup"
-run_named_script "[1/9] Stowing dotfiles CLI" "$install_dir/tools/app-bin.sh"
-run_named_script "[2/9] Applying bash config" "$install_dir/tools/app-bash.sh"
-run_named_script "[3/9] Installing git + config" "$install_dir/tools/app-git.sh"
-run_named_script "[4/9] Installing bat + config" "$install_dir/tools/app-bat.sh"
-run_named_script "[5/9] Installing eza" "$install_dir/tools/app-eza.sh"
-run_named_script "[6/9] Installing zoxide" "$install_dir/tools/app-zoxide.sh"
+export DOTFILES_SPINNER=dot
+run_named_script "[1/9] Stowing dotfiles CLI"      "$install_dir/tools/app-bin.sh"
+run_named_script "[2/9] Applying bash config"      "$install_dir/tools/app-bash.sh"
+export DOTFILES_SPINNER=moon
+run_named_script "[3/9] Installing git + config"   "$install_dir/tools/app-git.sh"
+run_named_script "[4/9] Installing bat + config"   "$install_dir/tools/app-bat.sh"
+run_named_script "[5/9] Installing eza"            "$install_dir/tools/app-eza.sh"
+run_named_script "[6/9] Installing zoxide"         "$install_dir/tools/app-zoxide.sh"
+export DOTFILES_SPINNER=globe
 run_named_script "[7/9] Installing starship + config" "$install_dir/tools/app-starship.sh"
-run_named_script "[8/9] Installing mise" "$install_dir/tools/app-mise.sh"
-run_named_script "[9/9] Installing zsh + config" "$install_dir/tools/app-zsh.sh"
+run_named_script "[8/9] Installing mise"           "$install_dir/tools/app-mise.sh"
+export DOTFILES_SPINNER=moon
+run_named_script "[9/9] Installing zsh + config"  "$install_dir/tools/app-zsh.sh"
 
-ok "Base setup complete"
+ui_banner_success "Base setup complete" "shell · git · bat · eza · zsh · starship · mise"

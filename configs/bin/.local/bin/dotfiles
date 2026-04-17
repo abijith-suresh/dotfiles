@@ -12,23 +12,37 @@ source "$INSTALL_DIR/lib/os.sh"
 # shellcheck disable=SC1091
 source "$INSTALL_DIR/lib/ui.sh"
 
+# ── Header ────────────────────────────────────────────────────────────────────
+
 show_header() {
   ui_header
+
+  # Status line: platform · active theme · date
+  local platform theme date_str
+  platform="$(detect_os)"
+  theme="$(cat "$DOTFILES_DIR/themes/current-theme" 2>/dev/null || echo "none")"
+  date_str="$(date '+%b %Y')"
+
+  printf '%s     %s · theme: %s · %s%s\n\n' \
+    "$_UI_MUTED" "$platform" "$theme" "$date_str" "$_UI_RST"
 }
+
+# ── Profile runner ────────────────────────────────────────────────────────────
 
 run_profile() {
   local profile="$1"
-
   case "$profile" in
-    wsl) bash "$INSTALL_DIR/profiles/wsl.sh" ;;
+    wsl)   bash "$INSTALL_DIR/profiles/wsl.sh" ;;
     linux) bash "$INSTALL_DIR/profiles/linux.sh" ;;
-    auto) run_profile "$(detect_os)" ;;
+    auto)  run_profile "$(detect_os)" ;;
     *)
-      echo "Unsupported install profile: $profile"
+      ui_error "Unsupported install profile: $profile"
       return 1
       ;;
   esac
 }
+
+# ── Commands ──────────────────────────────────────────────────────────────────
 
 cmd_theme() {
   bash "$DOTFILES_DIR/scripts/theme.sh" "$@"
@@ -39,37 +53,90 @@ cmd_clean_backups() {
 }
 
 cmd_update() {
-  echo "Starting update..."
+  ui_section "System Update"
 
+  # Package manager upgrade
+  export DOTFILES_SPINNER=pulse
   if grep -qi microsoft /proc/version 2>/dev/null; then
-    sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+    if command -v gum >/dev/null 2>&1; then
+      gum spin --spinner pulse --title "Upgrading system packages..." --show-error -- \
+        bash -c 'sudo apt update -qq && sudo apt upgrade -y && sudo apt autoremove -y'
+    else
+      sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+    fi
+    ui_ok "system packages"
   elif [ -f /etc/os-release ]; then
     # shellcheck disable=SC1091
     . /etc/os-release
     case "$ID" in
-      ubuntu|debian) sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y ;;
-      arch) sudo pacman -Syu --noconfirm ;;
-      fedora) sudo dnf upgrade -y ;;
+      ubuntu|debian)
+        if command -v gum >/dev/null 2>&1; then
+          gum spin --spinner pulse --title "Upgrading apt packages..." --show-error -- \
+            bash -c 'sudo apt update -qq && sudo apt upgrade -y && sudo apt autoremove -y'
+        else
+          sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+        fi
+        ui_ok "system packages"
+        ;;
+      arch)
+        if command -v gum >/dev/null 2>&1; then
+          gum spin --spinner pulse --title "Upgrading pacman packages..." --show-error -- \
+            sudo pacman -Syu --noconfirm
+        else
+          sudo pacman -Syu --noconfirm
+        fi
+        ui_ok "system packages"
+        ;;
+      fedora)
+        if command -v gum >/dev/null 2>&1; then
+          gum spin --spinner pulse --title "Upgrading dnf packages..." --show-error -- \
+            sudo dnf upgrade -y
+        else
+          sudo dnf upgrade -y
+        fi
+        ui_ok "system packages"
+        ;;
     esac
   fi
 
-  if command -v zsh >/dev/null 2>&1 && [ -f "$HOME/.config/zsh/.zshrc" ] && grep -q zinit "$HOME/.config/zsh/.zshrc"; then
-    zsh -i -c "zinit self-update; zinit update --all" 2>/dev/null || true
-    echo "  ✓ zinit plugins"
+  # zinit
+  if command -v zsh >/dev/null 2>&1 && [ -f "$HOME/.config/zsh/.zshrc" ] && \
+     grep -q zinit "$HOME/.config/zsh/.zshrc" 2>/dev/null; then
+    if command -v gum >/dev/null 2>&1; then
+      gum spin --spinner pulse --title "Updating zinit plugins..." --show-error -- \
+        zsh -i -c "zinit self-update; zinit update --all" 2>/dev/null || true
+    else
+      zsh -i -c "zinit self-update; zinit update --all" 2>/dev/null || true
+    fi
+    ui_ok "zinit plugins"
   fi
 
+  # mise
   if command -v mise >/dev/null 2>&1; then
-    mise up 2>/dev/null || true
-    echo "  ✓ mise tools"
+    if command -v gum >/dev/null 2>&1; then
+      gum spin --spinner pulse --title "Updating mise tools..." --show-error -- \
+        mise up 2>/dev/null || true
+    else
+      mise up 2>/dev/null || true
+    fi
+    ui_ok "mise tools"
   fi
 
+  # tmux plugins
   if [ -d "$HOME/.tmux/plugins/tpm" ]; then
-    TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
-    TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" "$HOME/.tmux/plugins/tpm/bin/update_plugins" all 2>/dev/null || true
-    echo "  ✓ tmux plugins"
+    if command -v gum >/dev/null 2>&1; then
+      gum spin --spinner pulse --title "Updating tmux plugins..." --show-error -- \
+        bash -c 'TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" \
+          "$HOME/.tmux/plugins/tpm/bin/update_plugins" all' 2>/dev/null || true
+    else
+      TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" \
+        "$HOME/.tmux/plugins/tpm/bin/update_plugins" all 2>/dev/null || true
+    fi
+    ui_ok "tmux plugins"
   fi
 
-  echo "Update complete."
+  export DOTFILES_SPINNER=moon
+  ui_banner_success "Update complete" "system · zinit · mise · tmux"
 }
 
 cmd_install_base_setup() {
@@ -95,83 +162,73 @@ cmd_install() {
   fi
 
   case "${1:-}" in
-    base|base-setup)
-      cmd_install_base_setup
-      return
-      ;;
-    terminal|terminal-tools)
-      cmd_install_terminal_tools
-      return
-      ;;
-    languages)
-      bash "$INSTALL_DIR/languages/select.sh" "${@:2}"
-      return
-      ;;
-    agents|coding-agents)
-      cmd_install_coding_agents
-      return
-      ;;
-    everything|all)
-      cmd_install_everything
-      return
-      ;;
-    theme)
-      cmd_theme
-      return
-      ;;
-    clean-backups)
-      cmd_clean_backups
-      return
-      ;;
+    base|base-setup)       cmd_install_base_setup;                              return ;;
+    terminal|terminal-tools) cmd_install_terminal_tools;                        return ;;
+    languages)             bash "$INSTALL_DIR/languages/select.sh" "${@:2}";    return ;;
+    agents|coding-agents)  cmd_install_coding_agents;                           return ;;
+    everything|all)        cmd_install_everything;                              return ;;
+    theme)                 cmd_theme;                                           return ;;
+    clean-backups)         cmd_clean_backups;                                   return ;;
   esac
 
   if ! command -v gum >/dev/null 2>&1; then
-    echo "gum is required for interactive install menus."
-    echo "Run ./install.sh first."
+    printf 'gum is required for interactive install menus.\nRun ./install.sh first.\n'
+    exit 1
+  fi
+
+  # Build menu items as "label  dim-description" strings
+  # gum choose renders them; we match on label prefix.
+  local choice
+  choice=$(gum choose \
+    "Base Setup       · shell, git, bat, eza, zsh, starship" \
+    "Terminal Tools   · neovim, tmux, zellij, fzf, lazygit…" \
+    "Languages        · node, bun, go, rust, python, java…" \
+    "Coding Agents    · pi, claude, codex, gemini, copilot" \
+    "Theme            · switch the active colorscheme" \
+    "Clean Backups    · remove stale stow backup files" \
+    "Install Everything · run all categories at once" \
+    "Quit" \
+    --header "  Install / Setup")
+
+  case "$choice" in
+    Base\ Setup*)       cmd_install_base_setup ;;
+    Terminal\ Tools*)   cmd_install_terminal_tools ;;
+    Languages*)         bash "$INSTALL_DIR/languages/select.sh" ;;
+    Coding\ Agents*)    cmd_install_coding_agents ;;
+    Theme*)             cmd_theme ;;
+    Clean\ Backups*)    cmd_clean_backups ;;
+    Install\ Everything*) cmd_install_everything ;;
+    *)                  return 0 ;;
+  esac
+}
+
+# ── Main menu ─────────────────────────────────────────────────────────────────
+
+show_menu() {
+  if ! command -v gum >/dev/null 2>&1; then
+    printf 'gum is required for interactive menus. Run ./install.sh first.\n'
     exit 1
   fi
 
   local choice
   choice=$(gum choose \
-    "Base Setup" \
-    "Terminal Tools" \
-    "Languages" \
-    "Coding Agents" \
-    "Theme" \
-    "Clean Backups" \
-    "Install Everything" \
+    "Theme            · switch the active colorscheme" \
+    "Update           · upgrade system + all managed tools" \
+    "Install          · set up tools, agents & languages" \
+    "Clean Backups    · remove stale stow backup files" \
     "Quit" \
-    --header "Install / setup")
+    --header "  What would you like to do?")
 
   case "$choice" in
-    "Base Setup") cmd_install_base_setup ;;
-    "Terminal Tools") cmd_install_terminal_tools ;;
-    "Languages") bash "$INSTALL_DIR/languages/select.sh" ;;
-    "Coding Agents") cmd_install_coding_agents ;;
-    "Theme") cmd_theme ;;
-    "Clean Backups") cmd_clean_backups ;;
-    "Install Everything") cmd_install_everything ;;
-    *) return 0 ;;
+    Theme*)         cmd_theme ;;
+    Update*)        cmd_update ;;
+    Install*)       cmd_install ;;
+    Clean\ Backups*) cmd_clean_backups ;;
+    *)              return 0 ;;
   esac
 }
 
-show_menu() {
-  if ! command -v gum >/dev/null 2>&1; then
-    echo "gum is required for interactive menus. Run ./install.sh first."
-    exit 1
-  fi
-
-  local choice
-  choice=$(gum choose "Theme" "Update" "Install" "Clean Backups" "Quit" --header "What would you like to do?")
-
-  case "$choice" in
-    Theme) cmd_theme ;;
-    Update) cmd_update ;;
-    Install) cmd_install ;;
-    "Clean Backups") cmd_clean_backups ;;
-    *) return 0 ;;
-  esac
-}
+# ── Entrypoint ────────────────────────────────────────────────────────────────
 
 case "${1:-}" in
   "")
@@ -194,7 +251,7 @@ case "${1:-}" in
     cmd_clean_backups "$@"
     ;;
   *)
-    echo "Usage: dotfiles [theme|update|install|clean-backups]"
+    printf 'Usage: dotfiles [theme|update|install|clean-backups]\n' >&2
     exit 1
     ;;
 esac
