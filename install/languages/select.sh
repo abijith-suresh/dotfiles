@@ -58,7 +58,7 @@ else
 fi
 
 if [ "${#selected[@]}" -eq 0 ]; then
-  info "No languages selected."
+  ui_info "No languages selected."
   exit 0
 fi
 
@@ -68,7 +68,7 @@ total="${#selected[@]}"
 index=0
 
 export DOTFILES_SPINNER=globe
-step "Installing programming languages"
+ui_section "Installing programming languages"
 for choice in "${selected[@]}"; do
   index=$((index + 1))
   run_language "$choice" "[$index/$total] Installing $choice"

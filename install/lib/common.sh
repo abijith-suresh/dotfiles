@@ -11,13 +11,6 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
-# ── Status primitives — delegate to ui.sh ─────────────────────────────────────
-
-step()  { ui_section "$@"; }
-ok()    { ui_ok "$@"; }
-warn()  { ui_warn "$@"; }
-info()  { ui_info "$@"; }
-
 # ── Directory helpers ─────────────────────────────────────────────────────────
 
 ensure_dir() {
