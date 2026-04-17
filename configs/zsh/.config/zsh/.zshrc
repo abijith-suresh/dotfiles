@@ -70,7 +70,9 @@ export PATH="$HOME/.opencode/bin:$PATH"
 
 # --- Source Aliases and Functions ---
 source "$ZDOTDIR/.zsh_aliases"
-source "$ZDOTDIR/.zsh_functions"
+for f in "$ZDOTDIR"/functions/*.zsh(N); do
+  source "$f"
+done
 
 # --- Source Local Overrides ---
 # Allows custom user additions without touching main config
