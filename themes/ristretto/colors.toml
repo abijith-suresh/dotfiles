@@ -1,0 +1,149 @@
+display_name = "Ristretto"
+theme_name = "ristretto"
+accent = "#8fafd4"
+foreground = "#e6d9db"
+background = "#2c2525"
+cursor = "#c3b7b8"
+selection_foreground = "#e6d9db"
+selection_background = "#403e41"
+color0 = "#2c2525"
+color1 = "#fd6883"
+color2 = "#adda78"
+color3 = "#f9cc6c"
+color4 = "#f38d70"
+color5 = "#a8a9eb"
+color6 = "#85dacc"
+color7 = "#e6d9db"
+color8 = "#463a3a"
+color9 = "#ff8297"
+color10 = "#c8e292"
+color11 = "#fcd675"
+color12 = "#f8a788"
+color13 = "#bebffd"
+color14 = "#9bf1e1"
+color15 = "#f1e5e7"
+
+starship_palette_name = "ristretto"
+rosewater = "#e0d0c0"
+pink = "#d4756e"
+mauve = "#af8fd4"
+red = "#d4756e"
+maroon = "#b85050"
+peach = "#d49f6e"
+yellow = "#d4b475"
+green = "#8faf77"
+teal = "#75d4b4"
+sky = "#8fafd4"
+sapphire = "#8fafd4"
+blue = "#8fafd4"
+lavender = "#af8fd4"
+text = "#e0d0c0"
+subtext1 = "#b8a898"
+subtext0 = "#908070"
+overlay2 = "#605040"
+overlay1 = "#483828"
+overlay0 = "#382818"
+surface2 = "#302018"
+surface1 = "#281810"
+surface0 = "#201008"
+base = "#201008"
+mantle = "#180c06"
+crust = "#100804"
+
+nvim_content = '''return {
+	{
+		"gthelding/monokai-pro.nvim",
+		config = function()
+			require("monokai-pro").setup({
+				filter = "ristretto",
+				override = function()
+					return {
+						NonText = { fg = "#948a8b" },
+					}
+				end,
+			})
+			vim.cmd([[colorscheme monokai-pro]])
+		end,
+	},
+	{
+		"LazyVim/LazyVim",
+		opts = {
+			colorscheme = "monokai-pro",
+		},
+	},
+}
+'''
+
+btop_main_bg = "#2c2421"
+btop_main_fg = "#e6d9db"
+btop_title = "#e6d9db"
+btop_hi_fg = "#fd6883"
+btop_selected_bg = "#3d2f2a"
+btop_selected_fg = "#e6d9db"
+btop_inactive_fg = "#72696a"
+btop_proc_misc = "#adda78"
+btop_cpu_box = "#5b4a45"
+btop_mem_box = "#5b4a45"
+btop_net_box = "#5b4a45"
+btop_proc_box = "#5b4a45"
+btop_div_line = "#72696a"
+btop_temp_start = "#a8a9eb"
+btop_temp_mid = "#f38d70"
+btop_temp_end = "#fd6a85"
+btop_cpu_start = "#adda78"
+btop_cpu_mid = "#f9cc6c"
+btop_cpu_end = "#fd6883"
+btop_free_start = "#5b4a45"
+btop_free_mid = "#adda78"
+btop_free_end = "#c5e2a3"
+btop_cached_start = "#5b4a45"
+btop_cached_mid = "#85dacc"
+btop_cached_end = "#b3e8dd"
+btop_available_start = "#5b4a45"
+btop_available_mid = "#f9cc6c"
+btop_available_end = "#fce2a3"
+btop_used_start = "#5b4a45"
+btop_used_mid = "#fd6a85"
+btop_used_end = "#feb5c7"
+btop_download_start = "#3d2f2a"
+btop_download_mid = "#a8a9eb"
+btop_download_end = "#c5c6f0"
+btop_upload_start = "#3d2f2a"
+btop_upload_mid = "#fd6a85"
+btop_upload_end = "#feb5c7"
+
+zellij_bg = "#2c2525"
+zellij_fg = "#e6d9db"
+zellij_black = "#2c2525"
+zellij_red = "#fd6883"
+zellij_green = "#adda78"
+zellij_yellow = "#f9cc6c"
+zellij_blue = "#f38d70"
+zellij_magenta = "#a8a9eb"
+zellij_cyan = "#85dacc"
+zellij_white = "#e6d9db"
+zellij_orange = "#FFA066"
+
+alacritty_has_root_colors = true
+alacritty_colors_primary_background = "'#2c2525'"
+alacritty_colors_primary_foreground = "'#e6d9db'"
+alacritty_colors_cursor_text = "'#c3b7b8'"
+alacritty_colors_cursor_cursor = "'#c3b7b8'"
+alacritty_colors_selection_text = "'#e6d9db'"
+alacritty_colors_selection_background = "'#403e41'"
+alacritty_colors_normal_black = "\"#2c2525\""
+alacritty_colors_normal_red = "\"#fd6883\""
+alacritty_colors_normal_green = "\"#adda78\""
+alacritty_colors_normal_yellow = "\"#f9cc6c\""
+alacritty_colors_normal_blue = "\"#f38d70\""
+alacritty_colors_normal_magenta = "\"#a8a9eb\""
+alacritty_colors_normal_cyan = "\"#85dacc\""
+alacritty_colors_normal_white = "\"#e6d9db\""
+alacritty_colors_bright_black = "\"#463a3a\""
+alacritty_colors_bright_red = "\"#ff8297\""
+alacritty_colors_bright_green = "\"#c8e292\""
+alacritty_colors_bright_yellow = "\"#fcd675\""
+alacritty_colors_bright_blue = "\"#f8a788\""
+alacritty_colors_bright_magenta = "\"#bebffd\""
+alacritty_colors_bright_cyan = "\"#9bf1e1\""
+alacritty_colors_bright_white = "\"#f1e5e7\""

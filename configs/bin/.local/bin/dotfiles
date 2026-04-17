@@ -6,18 +6,39 @@ set -euo pipefail
 SELF="$(readlink -f "$0")"
 DOTFILES_DIR="$(cd "$(dirname "$SELF")/../../../.." && pwd)"
 INSTALL_DIR="$DOTFILES_DIR/install"
+UNINSTALL_DIR="$INSTALL_DIR/tools/uninstall"
 
 # shellcheck disable=SC1091
 source "$INSTALL_DIR/lib/os.sh"
 # shellcheck disable=SC1091
 source "$INSTALL_DIR/lib/ui.sh"
+# shellcheck disable=SC1091
+source "$INSTALL_DIR/lib/stow.sh"
+
+UNINSTALL_TOOLS=(
+  alacritty
+  bash
+  bat
+  btop
+  fastfetch
+  fzf
+  git
+  lazydocker
+  lazygit
+  neovim
+  ripgrep
+  starship
+  tmux
+  vim
+  zellij
+  zsh
+)
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
 show_header() {
   ui_header
 
-  # Status line: platform · active theme · date
   local platform theme date_str
   platform="$(detect_os)"
   theme="$(cat "$DOTFILES_DIR/themes/current-theme" 2>/dev/null || echo "none")"
@@ -32,14 +53,211 @@ show_header() {
 run_profile() {
   local profile="$1"
   case "$profile" in
-    wsl)   bash "$INSTALL_DIR/profiles/wsl.sh" ;;
+    wsl) bash "$INSTALL_DIR/profiles/wsl.sh" ;;
     linux) bash "$INSTALL_DIR/profiles/linux.sh" ;;
-    auto)  run_profile "$(detect_os)" ;;
+    auto) run_profile "$(detect_os)" ;;
     *)
       ui_error "Unsupported install profile: $profile"
       return 1
       ;;
   esac
+}
+
+# ── Tool metadata ─────────────────────────────────────────────────────────────
+
+tool_label() {
+  case "$1" in
+    alacritty) echo "Alacritty" ;;
+    bash) echo "Bash" ;;
+    bat) echo "bat" ;;
+    btop) echo "btop" ;;
+    fastfetch) echo "fastfetch" ;;
+    fzf) echo "fzf" ;;
+    git) echo "Git" ;;
+    lazydocker) echo "lazydocker" ;;
+    lazygit) echo "lazygit" ;;
+    neovim) echo "Neovim" ;;
+    ripgrep) echo "ripgrep" ;;
+    starship) echo "Starship" ;;
+    tmux) echo "tmux" ;;
+    vim) echo "Vim" ;;
+    zellij) echo "Zellij" ;;
+    zsh) echo "zsh" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+normalize_uninstall_tool() {
+  case "$1" in
+    alacritty) echo "alacritty" ;;
+    bash) echo "bash" ;;
+    bat) echo "bat" ;;
+    btop) echo "btop" ;;
+    fastfetch) echo "fastfetch" ;;
+    fzf) echo "fzf" ;;
+    git) echo "git" ;;
+    lazydocker) echo "lazydocker" ;;
+    lazygit) echo "lazygit" ;;
+    nvim|neovim) echo "neovim" ;;
+    rg|ripgrep) echo "ripgrep" ;;
+    starship) echo "starship" ;;
+    tmux) echo "tmux" ;;
+    vim) echo "vim" ;;
+    zellij) echo "zellij" ;;
+    zsh) echo "zsh" ;;
+    *) return 1 ;;
+  esac
+}
+
+tool_package() {
+  case "$1" in
+    alacritty) echo "alacritty" ;;
+    bash) echo "bash" ;;
+    bat) echo "bat" ;;
+    btop) echo "btop" ;;
+    fastfetch) echo "fastfetch" ;;
+    fzf) echo "fzf" ;;
+    git) echo "git" ;;
+    neovim) echo "nvim" ;;
+    ripgrep) echo "ripgrep" ;;
+    starship) echo "starship" ;;
+    tmux) echo "tmux" ;;
+    vim) echo "vim" ;;
+    zellij) echo "zellij" ;;
+    zsh) echo "zsh" ;;
+    *) echo "" ;;
+  esac
+}
+
+tool_bin() {
+  case "$1" in
+    fzf) echo "fzf" ;;
+    lazydocker) echo "lazydocker" ;;
+    lazygit) echo "lazygit" ;;
+    starship) echo "starship" ;;
+    zellij) echo "zellij" ;;
+    *) echo "" ;;
+  esac
+}
+
+tool_extra_paths() {
+  case "$1" in
+    lazydocker) printf '%s\n' "$HOME/.config/lazydocker" ;;
+    lazygit) printf '%s\n' "$HOME/.config/lazygit" ;;
+    neovim) printf '%s\n' "$HOME/.vim/pack/vendor/start/catppuccin" ;;
+    tmux) printf '%s\n' "$HOME/.tmux/plugins/tpm" ;;
+    zsh) printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git" ;;
+  esac
+}
+
+tool_uninstall_script() {
+  echo "$UNINSTALL_DIR/uninstall-$1.sh"
+}
+
+package_has_targets() {
+  local package="$1"
+  local package_dir target source rel_path
+
+  [ -z "$package" ] && return 1
+  package_dir="$DOTFILES_DIR/configs/$package"
+  [ -d "$package_dir" ] || return 1
+
+  while IFS= read -r -d '' rel_path; do
+    rel_path="${rel_path#./}"
+    source="$package_dir/$rel_path"
+    target="$HOME/$rel_path"
+
+    if path_matches_source "$target" "$source"; then
+      return 0
+    fi
+  done < <(package_entries "$package_dir")
+
+  return 1
+}
+
+tool_has_removable_state() {
+  local tool="$1"
+  local package binary path
+
+  package="$(tool_package "$tool")"
+  binary="$(tool_bin "$tool")"
+
+  if package_has_targets "$package"; then
+    return 0
+  fi
+
+  if [ -n "$binary" ] && { [ -e "$HOME/.local/bin/$binary" ] || [ -L "$HOME/.local/bin/$binary" ]; }; then
+    return 0
+  fi
+
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    if [ -e "$path" ] || [ -L "$path" ]; then
+      return 0
+    fi
+  done < <(tool_extra_paths "$tool")
+
+  return 1
+}
+
+tool_plan() {
+  local tool="$1"
+  local package binary
+  local parts=()
+  local path
+
+  package="$(tool_package "$tool")"
+  binary="$(tool_bin "$tool")"
+
+  if [ -n "$package" ]; then
+    parts+=("stow:$package")
+  fi
+
+  if [ -n "$binary" ]; then
+    parts+=("bin:~/.local/bin/$binary")
+  fi
+
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    parts+=("path:${path/#$HOME/~}")
+  done < <(tool_extra_paths "$tool")
+
+  if [ "${#parts[@]}" -eq 0 ]; then
+    echo "safe uninstall"
+    return
+  fi
+
+  local joined="${parts[0]}"
+  local i
+  for ((i = 1; i < ${#parts[@]}; i++)); do
+    joined+=" · ${parts[$i]}"
+  done
+  echo "$joined"
+}
+
+show_uninstall_plan() {
+  ui_section "Uninstall: $(tool_label "$1")"
+  ui_info "This safe uninstall removes repo-managed config and local add-ons only."
+  ui_info "Will remove: $(tool_plan "$1")"
+}
+
+run_uninstall_tool() {
+  local tool="$1"
+  local script
+
+  script="$(tool_uninstall_script "$tool")"
+  if [ ! -f "$script" ]; then
+    ui_error "Missing uninstall script: $script"
+    return 1
+  fi
+
+  show_uninstall_plan "$tool"
+  if ! ui_confirm "Continue uninstalling $(tool_label "$tool")?"; then
+    ui_warn "Cancelled uninstall"
+    return 0
+  fi
+
+  bash "$script"
 }
 
 # ── Commands ──────────────────────────────────────────────────────────────────
@@ -55,7 +273,6 @@ cmd_clean_backups() {
 cmd_update() {
   ui_section "System Update"
 
-  # Package manager upgrade
   export DOTFILES_SPINNER=pulse
   if grep -qi microsoft /proc/version 2>/dev/null; then
     if command -v gum >/dev/null 2>&1; then
@@ -99,7 +316,6 @@ cmd_update() {
     esac
   fi
 
-  # zinit
   if command -v zsh >/dev/null 2>&1 && [ -f "$HOME/.config/zsh/.zshrc" ] && \
      grep -q zinit "$HOME/.config/zsh/.zshrc" 2>/dev/null; then
     if command -v gum >/dev/null 2>&1; then
@@ -111,7 +327,6 @@ cmd_update() {
     ui_ok "zinit plugins"
   fi
 
-  # mise
   if command -v mise >/dev/null 2>&1; then
     if command -v gum >/dev/null 2>&1; then
       gum spin --spinner pulse --title "Updating mise tools..." --show-error -- \
@@ -122,7 +337,6 @@ cmd_update() {
     ui_ok "mise tools"
   fi
 
-  # tmux plugins
   if [ -d "$HOME/.tmux/plugins/tpm" ]; then
     if command -v gum >/dev/null 2>&1; then
       gum spin --spinner pulse --title "Updating tmux plugins..." --show-error -- \
@@ -162,13 +376,13 @@ cmd_install() {
   fi
 
   case "${1:-}" in
-    base|base-setup)       cmd_install_base_setup;                              return ;;
-    terminal|terminal-tools) cmd_install_terminal_tools;                        return ;;
-    languages)             bash "$INSTALL_DIR/languages/select.sh" "${@:2}";    return ;;
-    agents|coding-agents)  cmd_install_coding_agents;                           return ;;
-    everything|all)        cmd_install_everything;                              return ;;
-    theme)                 cmd_theme;                                           return ;;
-    clean-backups)         cmd_clean_backups;                                   return ;;
+    base|base-setup) cmd_install_base_setup; return ;;
+    terminal|terminal-tools) cmd_install_terminal_tools; return ;;
+    languages) bash "$INSTALL_DIR/languages/select.sh" "${@:2}"; return ;;
+    agents|coding-agents) cmd_install_coding_agents; return ;;
+    everything|all) cmd_install_everything; return ;;
+    theme) cmd_theme; return ;;
+    clean-backups) cmd_clean_backups; return ;;
   esac
 
   if ! command -v gum >/dev/null 2>&1; then
@@ -176,8 +390,6 @@ cmd_install() {
     exit 1
   fi
 
-  # Build menu items as "label  dim-description" strings
-  # gum choose renders them; we match on label prefix.
   local choice
   choice=$(gum choose \
     "Base Setup       · shell, git, bat, eza, zsh, starship" \
@@ -191,15 +403,57 @@ cmd_install() {
     --header "  Install / Setup")
 
   case "$choice" in
-    Base\ Setup*)       cmd_install_base_setup ;;
-    Terminal\ Tools*)   cmd_install_terminal_tools ;;
-    Languages*)         bash "$INSTALL_DIR/languages/select.sh" ;;
-    Coding\ Agents*)    cmd_install_coding_agents ;;
-    Theme*)             cmd_theme ;;
-    Clean\ Backups*)    cmd_clean_backups ;;
+    Base\ Setup*) cmd_install_base_setup ;;
+    Terminal\ Tools*) cmd_install_terminal_tools ;;
+    Languages*) bash "$INSTALL_DIR/languages/select.sh" ;;
+    Coding\ Agents*) cmd_install_coding_agents ;;
+    Theme*) cmd_theme ;;
+    Clean\ Backups*) cmd_clean_backups ;;
     Install\ Everything*) cmd_install_everything ;;
-    *)                  return 0 ;;
+    *) return 0 ;;
   esac
+}
+
+cmd_uninstall() {
+  local tool selected choice
+
+  if [ -n "${1:-}" ]; then
+    tool="$(normalize_uninstall_tool "$1")" || {
+      ui_error "Unknown tool: $1"
+      ui_info "Available: ${UNINSTALL_TOOLS[*]}"
+      exit 1
+    }
+    run_uninstall_tool "$tool"
+    return
+  fi
+
+  if ! command -v gum >/dev/null 2>&1; then
+    printf 'gum is required for interactive uninstall menus.\nRun ./install.sh first.\n'
+    exit 1
+  fi
+
+  selected=()
+  for tool in "${UNINSTALL_TOOLS[@]}"; do
+    if tool_has_removable_state "$tool"; then
+      selected+=("$(tool_label "$tool") · $(tool_plan "$tool")")
+    fi
+  done
+
+  if [ "${#selected[@]}" -eq 0 ]; then
+    for tool in "${UNINSTALL_TOOLS[@]}"; do
+      selected+=("$(tool_label "$tool") · $(tool_plan "$tool")")
+    done
+  fi
+
+  choice=$(gum choose "${selected[@]}" --header "  Select a tool to uninstall")
+  [ -z "$choice" ] && return 0
+
+  tool="$(normalize_uninstall_tool "$(printf '%s' "$choice" | cut -d'·' -f1 | xargs | tr '[:upper:]' '[:lower:]' | tr ' ' '-')")" || {
+    ui_error "Could not parse selection: $choice"
+    return 1
+  }
+
+  run_uninstall_tool "$tool"
 }
 
 # ── Main menu ─────────────────────────────────────────────────────────────────
@@ -215,16 +469,18 @@ show_menu() {
     "Theme            · switch the active colorscheme" \
     "Update           · upgrade system + all managed tools" \
     "Install          · set up tools, agents & languages" \
+    "Uninstall        · remove managed config and local add-ons" \
     "Clean Backups    · remove stale stow backup files" \
     "Quit" \
     --header "  What would you like to do?")
 
   case "$choice" in
-    Theme*)         cmd_theme ;;
-    Update*)        cmd_update ;;
-    Install*)       cmd_install ;;
+    Theme*) cmd_theme ;;
+    Update*) cmd_update ;;
+    Install*) cmd_install ;;
+    Uninstall*) cmd_uninstall ;;
     Clean\ Backups*) cmd_clean_backups ;;
-    *)              return 0 ;;
+    *) return 0 ;;
   esac
 }
 
@@ -246,12 +502,16 @@ case "${1:-}" in
     shift
     cmd_install "$@"
     ;;
+  uninstall)
+    shift
+    cmd_uninstall "$@"
+    ;;
   clean-backups)
     shift
     cmd_clean_backups "$@"
     ;;
   *)
-    printf 'Usage: dotfiles [theme|update|install|clean-backups]\n' >&2
+    printf 'Usage: dotfiles [theme|update|install|uninstall|clean-backups]\n' >&2
     exit 1
     ;;
 esac

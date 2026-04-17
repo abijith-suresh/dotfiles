@@ -1,0 +1,117 @@
+format = """
+$directory\
+$git_branch\
+$git_status\
+$fill\
+$python\
+$lua\
+$nodejs\
+$golang\
+$haskell\
+$rust\
+$ruby\
+$package\
+$docker_context\
+$jobs\
+$cmd_duration\
+$line_break\
+$character"""
+
+add_newline = true
+
+palette = "{{ starship_palette_name }}"
+
+[palettes.{{ starship_palette_name }}]
+rosewater = "{{ rosewater }}"
+{{#if flamingo}}flamingo = "{{ flamingo }}"
+{{/if}}pink = "{{ pink }}"
+mauve = "{{ mauve }}"
+red = "{{ red }}"
+maroon = "{{ maroon }}"
+peach = "{{ peach }}"
+yellow = "{{ yellow }}"
+green = "{{ green }}"
+teal = "{{ teal }}"
+sky = "{{ sky }}"
+sapphire = "{{ sapphire }}"
+blue = "{{ blue }}"
+lavender = "{{ lavender }}"
+text = "{{ text }}"
+subtext1 = "{{ subtext1 }}"
+subtext0 = "{{ subtext0 }}"
+overlay2 = "{{ overlay2 }}"
+overlay1 = "{{ overlay1 }}"
+overlay0 = "{{ overlay0 }}"
+surface2 = "{{ surface2 }}"
+surface1 = "{{ surface1 }}"
+surface0 = "{{ surface0 }}"
+base = "{{ base }}"
+mantle = "{{ mantle }}"
+crust = "{{ crust }}"
+[directory]
+style = 'bold fg:blue'
+format = '[$path ]($style)'
+truncation_length = 3
+truncation_symbol = '…/'
+truncate_to_repo = false
+
+[directory.substitutions]
+'Documents' = '󰈙'
+'Downloads' = ' '
+'Music' = ' '
+'Pictures' = ' '
+
+[git_branch]
+style = 'fg:green'
+symbol = ' '
+format = '[on](white) [$symbol$branch ]($style)'
+
+[git_status]
+style = 'fg:green'
+format = '([$all_status$ahead_behind]($style) )'
+
+[fill]
+symbol = ' '
+
+[python]
+style = 'teal'
+symbol = ' '
+format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
+pyenv_version_name = true
+pyenv_prefix = ''
+
+[lua]
+symbol = ' '
+
+[nodejs]
+style = 'blue'
+symbol = ' '
+
+[golang]
+style = 'blue'
+symbol = ' '
+
+[rust]
+style = 'orange'
+symbol = ' '
+
+[package]
+symbol = '󰏗 '
+
+[docker_context]
+symbol = ' '
+style = 'fg:#06969A'
+format = '[$symbol]($style) $path'
+detect_files = ['docker-compose.yml', 'docker-compose.yaml', 'Dockerfile']
+detect_extensions = ['Dockerfile']
+
+[jobs]
+symbol = ' '
+style = 'red'
+number_threshold = 1
+format = '[$symbol]($style)'
+
+[cmd_duration]
+min_time = 500
+style = 'fg:gray'
+format = '[$duration]($style)'

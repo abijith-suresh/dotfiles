@@ -19,7 +19,7 @@ fi
 
 ensure_sudo_access
 
-step "Creating XDG directories"
+ui_section "Creating XDG directories"
 export DOTFILES_SPINNER=dot
 for dir in \
   "$HOME/.config" \
@@ -29,22 +29,29 @@ for dir in \
   "$HOME/.local/state/zsh" \
   "$HOME/.cache"; do
   ensure_dir "$dir"
-  ok "Ready $dir"
+  ui_ok "Ready $dir"
 done
 
-step "Installing base setup"
+ui_section "Installing base setup"
+TOTAL=9
+STEP=0
+run_step() {
+  STEP=$((STEP + 1))
+  run_named_script "[$STEP/$TOTAL] $1" "$2"
+}
+
 export DOTFILES_SPINNER=dot
-run_named_script "[1/9] Stowing dotfiles CLI"      "$install_dir/tools/app-bin.sh"
-run_named_script "[2/9] Applying bash config"      "$install_dir/tools/app-bash.sh"
+run_step "Stowing dotfiles CLI" "$install_dir/tools/app-bin.sh"
+run_step "Applying bash config" "$install_dir/tools/app-bash.sh"
 export DOTFILES_SPINNER=moon
-run_named_script "[3/9] Installing git + config"   "$install_dir/tools/app-git.sh"
-run_named_script "[4/9] Installing bat + config"   "$install_dir/tools/app-bat.sh"
-run_named_script "[5/9] Installing eza"            "$install_dir/tools/app-eza.sh"
-run_named_script "[6/9] Installing zoxide"         "$install_dir/tools/app-zoxide.sh"
+run_step "Installing git + config" "$install_dir/tools/app-git.sh"
+run_step "Installing bat + config" "$install_dir/tools/app-bat.sh"
+run_step "Installing eza" "$install_dir/tools/app-eza.sh"
+run_step "Installing zoxide" "$install_dir/tools/app-zoxide.sh"
 export DOTFILES_SPINNER=globe
-run_named_script "[7/9] Installing starship + config" "$install_dir/tools/app-starship.sh"
-run_named_script "[8/9] Installing mise"           "$install_dir/tools/app-mise.sh"
+run_step "Installing starship + config" "$install_dir/tools/app-starship.sh"
+run_step "Installing mise" "$install_dir/tools/app-mise.sh"
 export DOTFILES_SPINNER=moon
-run_named_script "[9/9] Installing zsh + config"  "$install_dir/tools/app-zsh.sh"
+run_step "Installing zsh + config" "$install_dir/tools/app-zsh.sh"
 
 ui_banner_success "Base setup complete" "shell · git · bat · eza · zsh · starship · mise"
