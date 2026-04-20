@@ -151,9 +151,9 @@ noremap <silent> <leader>e :Lex<CR>
 syntax on
 
 " Colorscheme
-colorscheme catppuccin_mocha
 set background=dark
 set termguicolors
+colorscheme catppuccin_mocha
 
 " Sync clipboard with OS
 set clipboard=unnamedplus

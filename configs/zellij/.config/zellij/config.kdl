@@ -1,7 +1,7 @@
 // Zellij configuration
-// Theme set by dotfiles theme switcher
+// Catppuccin Mocha is built into modern Zellij releases.
 
-theme "current"
+theme "catppuccin-mocha"
 default_layout "compact"
 on_force_close "quit"
 

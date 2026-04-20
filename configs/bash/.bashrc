@@ -64,6 +64,11 @@ webm2mp4() {
 
 # --- fzf Initialization ---
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
+export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git"'
+[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/fzf/themes/catppuccin-mocha.sh" ] && source "${XDG_CONFIG_HOME:-$HOME/.config}/fzf/themes/catppuccin-mocha.sh"
+export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS --height 40% --layout=reverse --border"
+export FZF_CTRL_T_OPTS='--preview "bat --color=always --style=numbers {}"'
+export FZF_ALT_C_OPTS='--preview "eza --tree --icons {}"'
 
 # --- OpenCode ---
 export PATH="$HOME/.opencode/bin:$PATH"
@@ -74,6 +79,7 @@ if command -v mise &>/dev/null; then
 fi
 
 # --- Starship Prompt ---
+# Note: Starship right prompts in bash require ble.sh; without it, bash keeps the left prompt only.
 eval "$(starship init bash)"
 
 # --- zoxide Initialization ---
