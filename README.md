@@ -35,8 +35,7 @@ Once installed, the main workflow is:
 ```bash
 dotfiles                    # Interactive menu
 dotfiles install            # Category-based installer
-dotfiles install everything # Base + terminal tools + agents + default theme
-dotfiles theme              # Switch the active theme
+dotfiles install everything # Base + terminal tools + agents
 dotfiles update             # Update system and managed tools
 dotfiles clean-backups      # Delete dotfiles-created .backup files
 ```
@@ -50,7 +49,6 @@ This is the preferred interface after the first bootstrap.
 - Terminal Tools
 - Languages
 - Coding Agents
-- Theme
 - Clean Backups
 - Install Everything
 
@@ -58,44 +56,26 @@ This is the preferred interface after the first bootstrap.
 
 ---
 
-## Themes
+## Theme
 
-Themes are **repo-backed**, not just machine-local.
+This repo is now intentionally **single-theme**: Catppuccin Mocha.
 
-When you run:
-
-```bash
-dotfiles theme tokyo-night
-```
-
-it updates:
-- `themes/current-theme`
-- tracked config outputs inside `configs/`
-- then re-stows the affected packages
-
-So the repo remains the source of truth for the active theme.
+There is no theme switcher anymore. The source of truth lives directly in the tracked files under `configs/`, which keeps the setup simpler and easier to maintain.
 
 ### Themed tools
 
-Themes currently apply to:
-- `starship`
-- `neovim`
-- `btop`
-- `zellij`
+Catppuccin is applied directly to:
 - `alacritty`
-
-### Available themes
-
-- catppuccin
-- tokyo-night
-- nord
-- gruvbox
-- everforest
-- kanagawa
-- rose-pine
-- matte-black
-- osaka-jade
-- ristretto
+- `bat`
+- `btop`
+- `fzf`
+- `lazydocker`
+- `lazygit`
+- `neovim`
+- `starship`
+- `tmux`
+- `vim`
+- `zellij`
 
 ---
 
@@ -113,6 +93,8 @@ dotfiles/
 │   ├── fastfetch/
 │   ├── fzf/
 │   ├── git/
+│   ├── lazydocker/
+│   ├── lazygit/
 │   ├── nvim/
 │   ├── ripgrep/
 │   ├── starship/
@@ -130,12 +112,7 @@ dotfiles/
 │   └── languages/             # Per-language installers + selector
 ├── scripts/
 │   ├── clean-backups.sh       # Removes managed .backup files
-│   ├── theme.sh               # Repo-backed theme application
-│   ├── update.sh              # Delegates to dotfiles update
-│   └── generate-starship-themes.sh
-├── themes/
-│   ├── current-theme          # Active theme state
-│   └── <theme>/               # Theme source assets
+│   └── update.sh              # Delegates to dotfiles update
 ├── README.md
 └── AGENTS.md
 ```
@@ -245,9 +222,9 @@ cd ~/.dotfiles/configs
 stow --restow btop
 ```
 
-### Theme switching and backups
+### Install/restow backups
 
-If `dotfiles theme` or `dotfiles install` encounters unmanaged files for managed targets,
+If `dotfiles install` encounters unmanaged files for managed targets,
 it may back them up as `*.backup` before re-stowing.
 
 After testing, you can remove those backups with:
@@ -261,7 +238,8 @@ dotfiles clean-backups
 ## Philosophy
 
 - one primary workflow: `dotfiles`
-- repo-backed state instead of hidden machine-only state
+- tracked config as the source of truth
+- Catppuccin Mocha everywhere instead of a theme-switching layer
 - GNU Stow as the deployment model
 - modular install scripts
 - easy future extension to other distros and operating systems

@@ -85,7 +85,7 @@ run_named_script "[3/3] Making dotfiles CLI available" "$INSTALL_DIR/tools/app-b
 
 ui_banner_success "Bootstrap complete" "dotfiles CLI is ready"
 ui_info "Use 'dotfiles install' for the full setup flow."
-ui_info "Use 'dotfiles theme' or 'dotfiles update' later from the CLI."
+ui_info "Use 'dotfiles update' later from the CLI."
 echo ""
 
 if ui_confirm "Launch the dotfiles installer now?"; then

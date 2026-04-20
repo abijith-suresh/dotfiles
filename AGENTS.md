@@ -1,19 +1,20 @@
 # AGENTS.md - Dotfiles Repository Guide
 
-This repository is a GNU Stow-based dotfiles system with repo-backed theme state and a modular install architecture.
+This repository is a GNU Stow-based dotfiles system with a single Catppuccin Mocha theme and a modular install architecture.
 
 ## Core rules
 
 1. **`configs/` is the source of truth for deployed configuration**
    - If a file should exist on the machine via Stow, its authoritative source lives in `configs/`.
 
-2. **`themes/` contains theme source assets, not deployed config**
-   - `themes/<theme>/...` are inputs
-   - `scripts/theme.sh` writes the active outputs into `configs/`
-   - `themes/current-theme` stores the selected theme name
+2. **Theme config is now direct and hand-maintained**
+   - Do not rebuild a multi-theme layer.
+   - Prefer explicit Catppuccin Mocha config checked into `configs/`.
+   - If a tool supports Catppuccin officially, prefer the upstream Catppuccin port or the tool's native Catppuccin integration.
 
 3. **Do not reintroduce machine-only theme writes as the primary mechanism**
-   - Theme switching should update repo-backed config first, then re-stow.
+   - The repo should stay the source of truth.
+   - Avoid runtime theme generators unless there is a very strong reason.
 
 4. **Install architecture is layered**
    - `install/bootstrap/` → minimal host bootstrap
@@ -40,12 +41,7 @@ dotfiles/
 │   └── languages/
 ├── scripts/
 │   ├── clean-backups.sh
-│   ├── theme.sh
-│   ├── update.sh
-│   └── generate-starship-themes.sh
-├── themes/
-│   ├── current-theme
-│   └── <theme>/
+│   └── update.sh
 └── README.md / AGENTS.md
 ```
 
@@ -54,16 +50,11 @@ dotfiles/
 ### Hand-maintained
 - Most files under `configs/`
 - Install scripts under `install/`
-- Theme source assets under `themes/<theme>/`
+- Tool-specific Catppuccin config checked into `configs/`
 
-### Generated / rewritten by theme switching
-These are still repo-backed and tracked, but are updated by `scripts/theme.sh`:
-- `configs/starship/.config/starship.toml`
-- `configs/nvim/.config/nvim/lua/plugins/theme.lua`
-- `configs/btop/.config/btop/themes/current.theme`
-- `configs/zellij/.config/zellij/themes/current.kdl`
-- `configs/alacritty/.config/alacritty/theme.toml`
-- `themes/current-theme`
+### Generated / cached at runtime
+- Tool plugin downloads under home-directory runtime paths (for example TPM plugins or Vim packages)
+- Backup files created during Stow conflict handling (`*.backup`)
 
 ## Shell / script conventions
 
@@ -83,12 +74,12 @@ These are still repo-backed and tracked, but are updated by `scripts/theme.sh`:
 - Unmanaged conflicts should be backed up next to the target as `*.backup`
 - Backup cleanup should only delete backups for known managed targets
 
-## Theme system conventions
+## Theme conventions
 
-- Adding a new theme means adding a complete directory under `themes/<name>/`
-- Keep theme directory contents consistent across themes
-- If a new themed tool is added, theme switching must remain repo-backed
-- Do not hardcode a theme in configs when it should be generated from the active theme
+- Catppuccin Mocha is the only supported theme flavor in this repo
+- Prefer official upstream Catppuccin theme files when available
+- Keep theme naming explicit in config filenames when it improves clarity (for example `catppuccin-mocha.toml`)
+- If a new themed tool is added, wire it directly into `configs/` and installer flows without adding a theme switcher
 
 ## Install flow conventions
 
@@ -114,13 +105,13 @@ Before finishing a substantial change, try to validate with:
 - `bash -n` on all changed shell scripts
 - `zsh -n` on zsh config changes
 - `stow -n -v <package>` where relevant
-- non-interactive command checks for `dotfiles`, `theme.sh`, and install/profile entrypoints
+- non-interactive command checks for `dotfiles` and install/profile entrypoints
 
 ## Current architecture intent
 
 This repo is moving toward:
 - one user-facing command: `dotfiles`
-- repo-backed active theme state
+- tracked Catppuccin Mocha config instead of theme-switching state
 - category-first install UX backed by per-app installer scripts
 - clean progress-oriented install feedback
 - modular, extensible install logic
