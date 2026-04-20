@@ -17,9 +17,9 @@ manage_stow_packages "$dotfiles_dir" tmux
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 if [ -d "$TPM_DIR" ]; then
   echo "TPM already installed"
-  exit 0
+else
+  git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
+  echo "TPM installed"
 fi
 
-git clone https://github.com/tmux-plugins/tpm "$TPM_DIR"
-
-echo "TPM installed"
+TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" "$TPM_DIR/bin/install_plugins" >/dev/null 2>&1 || true

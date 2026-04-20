@@ -39,13 +39,12 @@ UNINSTALL_TOOLS=(
 show_header() {
   ui_header
 
-  local platform theme date_str
+  local platform date_str
   platform="$(detect_os)"
-  theme="$(cat "$DOTFILES_DIR/themes/current-theme" 2>/dev/null || echo "none")"
   date_str="$(date '+%b %Y')"
 
-  printf '%s     %s · theme: %s · %s%s\n\n' \
-    "$_UI_MUTED" "$platform" "$theme" "$date_str" "$_UI_RST"
+  printf '%s     %s · catppuccin mocha · %s%s\n\n' \
+    "$_UI_MUTED" "$platform" "$date_str" "$_UI_RST"
 }
 
 # ── Profile runner ────────────────────────────────────────────────────────────
@@ -118,6 +117,8 @@ tool_package() {
     fastfetch) echo "fastfetch" ;;
     fzf) echo "fzf" ;;
     git) echo "git" ;;
+    lazydocker) echo "lazydocker" ;;
+    lazygit) echo "lazygit" ;;
     neovim) echo "nvim" ;;
     ripgrep) echo "ripgrep" ;;
     starship) echo "starship" ;;
@@ -142,10 +143,8 @@ tool_bin() {
 
 tool_extra_paths() {
   case "$1" in
-    lazydocker) printf '%s\n' "$HOME/.config/lazydocker" ;;
-    lazygit) printf '%s\n' "$HOME/.config/lazygit" ;;
-    neovim) printf '%s\n' "$HOME/.vim/pack/vendor/start/catppuccin" ;;
-    tmux) printf '%s\n' "$HOME/.tmux/plugins/tpm" ;;
+    tmux) printf '%s\n' "$HOME/.tmux/plugins" ;;
+    vim) printf '%s\n' "$HOME/.vim/pack/vendor/start/catppuccin" ;;
     zsh) printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git" ;;
   esac
 }
@@ -262,10 +261,6 @@ run_uninstall_tool() {
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
-cmd_theme() {
-  bash "$DOTFILES_DIR/scripts/theme.sh" "$@"
-}
-
 cmd_clean_backups() {
   bash "$DOTFILES_DIR/scripts/clean-backups.sh" "$@"
 }
@@ -381,7 +376,6 @@ cmd_install() {
     languages) bash "$INSTALL_DIR/languages/select.sh" "${@:2}"; return ;;
     agents|coding-agents) cmd_install_coding_agents; return ;;
     everything|all) cmd_install_everything; return ;;
-    theme) cmd_theme; return ;;
     clean-backups) cmd_clean_backups; return ;;
   esac
 
@@ -396,7 +390,6 @@ cmd_install() {
     "Terminal Tools   · neovim, tmux, zellij, fzf, lazygit…" \
     "Languages        · node, bun, go, rust, python, java…" \
     "Coding Agents    · pi, claude, codex, gemini, copilot" \
-    "Theme            · switch the active colorscheme" \
     "Clean Backups    · remove stale stow backup files" \
     "Install Everything · run all categories at once" \
     "Quit" \
@@ -407,7 +400,6 @@ cmd_install() {
     Terminal\ Tools*) cmd_install_terminal_tools ;;
     Languages*) bash "$INSTALL_DIR/languages/select.sh" ;;
     Coding\ Agents*) cmd_install_coding_agents ;;
-    Theme*) cmd_theme ;;
     Clean\ Backups*) cmd_clean_backups ;;
     Install\ Everything*) cmd_install_everything ;;
     *) return 0 ;;
@@ -466,7 +458,6 @@ show_menu() {
 
   local choice
   choice=$(gum choose \
-    "Theme            · switch the active colorscheme" \
     "Update           · upgrade system + all managed tools" \
     "Install          · set up tools, agents & languages" \
     "Uninstall        · remove managed config and local add-ons" \
@@ -475,7 +466,6 @@ show_menu() {
     --header "  What would you like to do?")
 
   case "$choice" in
-    Theme*) cmd_theme ;;
     Update*) cmd_update ;;
     Install*) cmd_install ;;
     Uninstall*) cmd_uninstall ;;
@@ -490,10 +480,6 @@ case "${1:-}" in
   "")
     show_header
     show_menu
-    ;;
-  theme)
-    shift
-    cmd_theme "$@"
     ;;
   update)
     cmd_update
@@ -511,7 +497,7 @@ case "${1:-}" in
     cmd_clean_backups "$@"
     ;;
   *)
-    printf 'Usage: dotfiles [theme|update|install|uninstall|clean-backups]\n' >&2
+    printf 'Usage: dotfiles [update|install|uninstall|clean-backups]\n' >&2
     exit 1
     ;;
 esac

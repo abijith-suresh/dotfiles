@@ -8,6 +8,7 @@ return {
     config = function()
       local bufferline = require('bufferline')
       bufferline.setup({
+        highlights = require("catppuccin.special.bufferline").get_theme(),
         options = {
           mode = 'buffers',
           style_preset = bufferline.style_preset.default,

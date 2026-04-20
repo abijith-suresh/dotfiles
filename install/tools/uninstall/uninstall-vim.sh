@@ -7,4 +7,5 @@ install_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$install_dir/lib/uninstall.sh"
 
 stow_remove vim
-ui_banner_success "Vim config uninstall complete" "config removed · system package left intact"
+remove_path "$HOME/.vim/pack/vendor/start/catppuccin"
+ui_banner_success "Vim uninstall complete" "config + Catppuccin plugin removed"

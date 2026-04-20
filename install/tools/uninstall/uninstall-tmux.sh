@@ -7,5 +7,5 @@ install_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$install_dir/lib/uninstall.sh"
 
 stow_remove tmux
-remove_path "$HOME/.tmux/plugins/tpm"
-ui_banner_success "tmux uninstall complete" "config + TPM removed"
+remove_path "$HOME/.tmux/plugins"
+ui_banner_success "tmux uninstall complete" "config + plugins removed"

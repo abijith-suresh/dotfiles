@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://json.schemastore.org/lazydocker.json
+gui:
+  border: "rounded"
+  theme:
+    activeBorderColor:
+      - "#89b4fa"
+      - bold
+    inactiveBorderColor:
+      - "#a6adc8"
+    selectedLineBgColor:
+      - "#313244"
+    optionsTextColor:
+      - "#89b4fa"
+
+logs:
+  timestamps: false
+  since: "60m"
