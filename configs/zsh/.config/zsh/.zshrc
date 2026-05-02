@@ -77,3 +77,6 @@ done
 # --- Source Local Overrides ---
 # Allows custom user additions without touching main config
 [[ -f "$ZDOTDIR/.zshrc.local" ]] && source "$ZDOTDIR/.zshrc.local"
+
+# bun completions
+[ -s "/home/abijith/.bun/_bun" ] && source "/home/abijith/.bun/_bun"
