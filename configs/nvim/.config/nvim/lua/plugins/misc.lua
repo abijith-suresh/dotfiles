@@ -1,11 +1,8 @@
-return {
-  { "tpope/vim-sleuth" },
-  { "tpope/vim-surround" },
-  { "numToStr/Comment.nvim", opts = {} },
-  { "windwp/nvim-autopairs", event = "InsertEnter", opts = {} },
-  {
-    "folke/todo-comments.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
-    opts = { signs = false },
-  },
-}
+-- Comment.nvim
+require("Comment").setup()
+
+-- nvim-autopairs
+require("nvim-autopairs").setup({})
+
+-- todo-comments.nvim
+require("todo-comments").setup({ signs = false })

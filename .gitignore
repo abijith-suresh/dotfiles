@@ -7,7 +7,6 @@ Thumbs.db
 *.zwc.old
 
 # Runtime / cache files inside tracked config trees
-configs/nvim/.config/nvim/lazy-lock.json
 configs/tmux/.config/tmux/plugins/
 configs/zsh/.config/zsh/.zsh_history
 configs/zsh/.config/zsh/.zcompdump*

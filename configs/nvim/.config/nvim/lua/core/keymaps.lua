@@ -41,11 +41,11 @@ vim.keymap.set("n", "<Down>", ":resize +2<CR>", opts)
 vim.keymap.set("n", "<Left>", ":vertical resize -2<CR>", opts)
 vim.keymap.set("n", "<Right>", ":vertical resize +2<CR>", opts)
 
--- Buffers
-vim.keymap.set("n", "<Tab>", "<cmd>BufferLineCycleNext<CR>", opts)
-vim.keymap.set("n", "<S-Tab>", "<cmd>BufferLineCyclePrev<CR>", opts)
+-- Buffers (using built-in :bnext/:bprev instead of bufferline)
+vim.keymap.set("n", "<Tab>", ":bnext<CR>", opts)
+vim.keymap.set("n", "<S-Tab>", ":bprev<CR>", opts)
 vim.keymap.set("n", "<C-i>", "<C-i>", opts)
-vim.keymap.set("n", "<leader>x", ":Bdelete!<CR>", opts)
+vim.keymap.set("n", "<leader>x", ":bdelete!<CR>", opts)
 vim.keymap.set("n", "<leader>b", "<cmd> enew <CR>", opts)
 
 -- Increment/decrement numbers
@@ -97,7 +97,6 @@ vim.keymap.set("n", "<leader>Y", [["+Y]])
 
 -- Toggle diagnostics
 local diagnostics_active = true
-
 vim.keymap.set("n", "<leader>do", function()
   diagnostics_active = not diagnostics_active
   if diagnostics_active then
@@ -107,7 +106,7 @@ vim.keymap.set("n", "<leader>do", function()
   end
 end)
 
--- Diagnostic keymaps
+-- Diagnostic keymaps (supplement 0.12 defaults)
 vim.keymap.set("n", "[d", function()
   vim.diagnostic.jump({ count = -1, float = true })
 end, { desc = "Go to previous diagnostic message" })

@@ -11,7 +11,7 @@ vim.o.updatetime = 250
 vim.o.timeoutlen = 300
 vim.o.backup = false
 vim.o.writebackup = false
-vim.o.completeopt = "menuone,noselect"
+vim.o.completeopt = "menuone,noselect,popup"
 vim.opt.termguicolors = true
 vim.o.whichwrap = "bs<>[]hl"
 vim.o.wrap = false
@@ -37,6 +37,7 @@ vim.o.conceallevel = 0
 vim.o.fileencoding = "utf-8"
 vim.o.cmdheight = 1
 vim.o.autoindent = true
+vim.o.pumborder = "rounded"
 vim.opt.shortmess:append("c")
 vim.opt.iskeyword:append("-")
 vim.opt.formatoptions:remove({ "c", "r", "o" })
