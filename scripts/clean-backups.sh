@@ -6,10 +6,13 @@ set -euo pipefail
 SELF="$(readlink -f "$0")"
 DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
 
-# shellcheck disable=SC1091
-source "$DOTFILES_DIR/install/lib/ui.sh"
-# shellcheck disable=SC1091
-source "$DOTFILES_DIR/install/lib/stow.sh"
+_RST=$'\e[0m'
+_GREEN=$'\e[38;2;166;227;161m'
+_YELLOW=$'\e[38;2;249;226;175m'
+_RED=$'\e[38;2;243;139;168m'
+_MUTED=$'\e[38;2;108;112;134m'
+_BLUE=$'\e[38;2;137;180;250m'
+_ACCENT=$'\e[38;2;203;166;247m'
 
 usage() {
   cat <<'EOF'
@@ -32,55 +35,55 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-packages=()
-for package_dir in "$DOTFILES_DIR"/configs/*; do
-  [ -d "$package_dir" ] || continue
-  packages+=("$(basename "$package_dir")")
-done
-
 backups=()
-while IFS= read -r -d '' target; do
-  if [ -e "$target.backup" ] || [ -L "$target.backup" ]; then
-    backups+=("$target.backup")
-  fi
+for package_dir in "$DOTFILES_DIR"/configs/*/; do
+  pkg="$(basename "$package_dir")"
+  [ "$pkg" = ".stowrc" ] && continue
 
-  backup_dir="$(dirname "$target")"
-  backup_name="$(basename "$target")"
-  if [ -d "$backup_dir" ]; then
-    while IFS= read -r numbered_backup; do
-      backups+=("$numbered_backup")
-    done < <(find "$backup_dir" -maxdepth 1 \( -type f -o -type l -o -type d \) \
-      -name "$backup_name.backup.*" | sort)
-  fi
-done < <(list_target_paths "$DOTFILES_DIR" "${packages[@]}")
+  while IFS= read -r -d '' rel_path; do
+    rel_path="${rel_path#./}"
+    target="$HOME/$rel_path"
 
-if [ "${#backups[@]}" -eq 0 ]; then
-  ui_info "No dotfiles backups found."
-  exit 0
-fi
+    if [ -e "$target.backup" ] || [ -L "$target.backup" ]; then
+      backups+=("$target.backup")
+    fi
+
+    backup_dir="$(dirname "$target")"
+    backup_name="$(basename "$target")"
+    if [ -d "$backup_dir" ]; then
+      while IFS= read -r numbered_backup; do
+        backups+=("$numbered_backup")
+      done < <(find "$backup_dir" -maxdepth 1 \( -type f -o -type l -o -type d \) \
+        -name "$backup_name.backup.*" | sort)
+    fi
+  done < <(cd "$package_dir" && { find . -mindepth 1 -type d -print0; find . -mindepth 1 \( -type f -o -type l \) -print0; })
+done
 
 mapfile -t backups < <(printf '%s\n' "${backups[@]}" | awk '!seen[$0]++')
 
+if [ "${#backups[@]}" -eq 0 ]; then
+  printf '%s     No dotfiles backups found.%s\n' "$_MUTED" "$_RST"
+  exit 0
+fi
+
 if [ "$dry_run" -eq 1 ]; then
-  ui_warn "Dry run — would remove the following backups:"
+  printf '%s  Dry run — would remove the following backups:%s\n' "$_YELLOW" "$_RST"
   for b in "${backups[@]}"; do
-    printf '%s     %s%s\n' "$_UI_MUTED" "$b" "$_UI_RST"
+    printf '%s     %s%s\n' "$_MUTED" "$b" "$_RST"
   done
   exit 0
 fi
 
-ui_section "Clean Backups"
-printf '%s  The following backups will be removed:%s\n' "$_UI_MUTED" "$_UI_RST"
+printf '\n%s  The following backups will be removed:%s\n' "$_MUTED" "$_RST"
 for b in "${backups[@]}"; do
-  printf '%s     %s%s\n' "$_UI_MUTED" "$b" "$_UI_RST"
+  printf '%s     %s%s\n' "$_MUTED" "$b" "$_RST"
 done
 echo ""
 
 if [ "$auto_yes" -ne 1 ]; then
-  if ! ui_confirm "Delete these backup files?"; then
-    ui_info "Aborted."
-    exit 0
-  fi
+  printf '%s? Delete these backup files? [y/N] %s' "$_ACCENT" "$_RST"
+  read -r reply
+  [[ "$reply" =~ ^[Yy]$ ]] || { printf '%s     Aborted.%s\n' "$_MUTED" "$_RST"; exit 0; }
 fi
 
 count=0
@@ -89,4 +92,5 @@ for backup in "${backups[@]}"; do
   count=$((count + 1))
 done
 
-ui_banner_success "Removed $count backup(s)"
+printf '\n%s  ✓  Removed %d backup(s)%s\n' "$_GREEN" "$count" "$_RST"
+echo ""

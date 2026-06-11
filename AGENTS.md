@@ -17,31 +17,24 @@ This repository is a GNU Stow-based dotfiles system with a single Catppuccin Moc
    - Avoid runtime theme generators unless there is a very strong reason.
 
 4. **Install architecture is layered**
-   - `install/bootstrap/` → minimal host bootstrap
-   - `install/categories/` → category orchestration scripts
-   - `install/lib/` → shared helpers
-   - `install/profiles/` → platform entrypoints for full setup
-   - `install/tools/` → per-tool/per-app installers
-   - `install/agents/` → per-agent installers
+   - `install/bootstrap/` → system package bootstrapping
+   - `install/cli/` → per-tool/per-agent installers
    - `install/languages/` → per-language installers
 
 ## Directory map
 
 ```text
 dotfiles/
-├── install.sh                 # minimal bootstrap entrypoint
+├── install.sh                 # Single entrypoint
 ├── configs/                   # stow packages
 ├── install/
 │   ├── bootstrap/
-│   ├── categories/
-│   ├── lib/
-│   ├── profiles/
-│   ├── tools/
-│   ├── agents/
-│   └── languages/
+│   │   └── packages.sh        # OS-detecting package installer
+│   │   └── packages/          # Per-package-manager scripts
+│   ├── cli/                   # Per-tool/per-agent installers
+│   └── languages/             # Per-language installers
 ├── scripts/
-│   ├── clean-backups.sh
-│   └── update.sh
+│   └── clean-backups.sh
 └── README.md / AGENTS.md
 ```
 
@@ -50,7 +43,6 @@ dotfiles/
 ### Hand-maintained
 - Most files under `configs/`
 - Install scripts under `install/`
-- Tool-specific Catppuccin config checked into `configs/`
 
 ### Generated / cached at runtime
 - Tool plugin downloads under home-directory runtime paths (for example TPM plugins or Vim packages)
@@ -61,7 +53,7 @@ dotfiles/
 - Use `#!/usr/bin/env bash` for scripts unless there is a strong reason not to
 - Prefer `set -euo pipefail`
 - Keep scripts idempotent where possible
-- Centralize shared helpers in `install/lib/`
+- Each script under `install/cli/` is self-contained — no shared lib dependencies
 - Prefer one responsibility per script
 - Use clear section comments only when helpful; avoid noise
 
@@ -83,14 +75,12 @@ dotfiles/
 
 ## Install flow conventions
 
-- `install.sh` should stay minimal and two-phase
-- The long-running setup flow belongs in `dotfiles install` / `install/categories/`
-- The install menu should stay category-first even if the implementation is app-based underneath
-- `Install Everything` should exclude languages
-- Per-tool installers should live in `install/tools/app-*.sh`
-- Per-agent installers should live in `install/agents/app-*.sh`
-- Per-language installers should live in `install/languages/app-*.sh`
-- Installer and maintenance flows should remain idempotent on an existing WSL machine
+- `install.sh` is the single entrypoint
+- `install.sh` runs bootstrap, then CLI installers, then language installers, then stows all packages
+- Per-tool installers live in `install/cli/app-*.sh`
+- Per-agent installers live in `install/cli/app-*.sh`
+- Per-language installers live in `install/languages/app-*.sh`
+- Install scripts should remain idempotent on an existing WSL machine
 
 ## Important constraints
 
@@ -105,14 +95,12 @@ Before finishing a substantial change, try to validate with:
 - `bash -n` on all changed shell scripts
 - `zsh -n` on zsh config changes
 - `stow -n -v <package>` where relevant
-- non-interactive command checks for `dotfiles` and install/profile entrypoints
 
 ## Current architecture intent
 
 This repo is moving toward:
-- one user-facing command: `dotfiles`
+- a single `./install.sh` entrypoint
 - tracked Catppuccin Mocha config instead of theme-switching state
-- category-first install UX backed by per-app installer scripts
-- clean progress-oriented install feedback
-- modular, extensible install logic
+- self-contained per-app installer scripts (no lib/ dependencies)
 - clean future extension for Arch, Fedora, macOS, and desktop Linux variants
+- configuration stow packages for coding agents (opencode, pi, claude, codex)

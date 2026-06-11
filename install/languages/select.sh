@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-install_dir="$(cd "$(dirname "$0")/.." && pwd)"
 base_dir="$(cd "$(dirname "$0")" && pwd)"
-
-# shellcheck disable=SC1091
-source "$install_dir/lib/common.sh"
-# ui.sh is auto-sourced by common.sh
 
 choices=("Node.js" "Bun" "Java" "Python" "Go" "Rust")
 
@@ -27,13 +22,14 @@ run_language() {
   local choice="$1"
   local label="$2"
 
+  echo "  $label"
   case "$choice" in
-    "Node.js") run_named_script "$label" "$base_dir/app-node.sh" ;;
-    "Bun") run_named_script "$label" "$base_dir/app-bun.sh" ;;
-    Java) run_named_script "$label" "$base_dir/app-java.sh" ;;
-    Python) run_named_script "$label" "$base_dir/app-python.sh" ;;
-    Go) run_named_script "$label" "$base_dir/app-go.sh" ;;
-    Rust) run_named_script "$label" "$base_dir/app-rust.sh" ;;
+    "Node.js") bash "$base_dir/app-node.sh" ;;
+    "Bun") bash "$base_dir/app-bun.sh" ;;
+    Java) bash "$base_dir/app-java.sh" ;;
+    Python) bash "$base_dir/app-python.sh" ;;
+    Go) bash "$base_dir/app-go.sh" ;;
+    Rust) bash "$base_dir/app-rust.sh" ;;
   esac
 }
 
@@ -41,8 +37,8 @@ selected=()
 if [ "$#" -gt 0 ]; then
   for arg in "$@"; do
     normalized="$(normalize_language "$arg")" || {
-      ui_error "Unknown language: $arg"
-      ui_info "Available: node bun java python go rust"
+      echo "Unknown language: $arg" >&2
+      echo "Available: node bun java python go rust"
       exit 1
     }
 
@@ -54,11 +50,14 @@ if [ "$#" -gt 0 ]; then
     selected+=("$normalized")
   done
 else
-  mapfile -t selected < <(ui_choose_many "Select programming languages" "${choices[@]}" | sed '/^$/d')
+  printf "Select programming languages (space-separated):\n"
+  printf "  %s\n" "${choices[@]}"
+  printf "\nLanguages: "
+  read -r -a selected
 fi
 
 if [ "${#selected[@]}" -eq 0 ]; then
-  ui_info "No languages selected."
+  echo "No languages selected."
   exit 0
 fi
 
@@ -67,11 +66,12 @@ mapfile -t selected < <(printf '%s\n' "${selected[@]}" | awk '!seen[$0]++')
 total="${#selected[@]}"
 index=0
 
-export DOTFILES_SPINNER=globe
-ui_section "Installing programming languages"
+echo ""
+echo "==> Installing programming languages"
 for choice in "${selected[@]}"; do
   index=$((index + 1))
   run_language "$choice" "[$index/$total] Installing $choice"
 done
 
-ui_banner_success "Languages installed" "$(printf '%s' "${selected[*]}")"
+echo ""
+echo "Languages installed: ${selected[*]}"
