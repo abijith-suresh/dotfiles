@@ -49,7 +49,9 @@ eval "$(zoxide init zsh)"
 
 # --- Prompt (Starship) ---
 # https://starship.rs/
-eval "$(starship init zsh)"
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+fi
 
 # --- mise (language/runtime version manager) ---
 # Replaces NVM, SDKMAN, and other version managers
