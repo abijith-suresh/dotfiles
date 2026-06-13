@@ -20,49 +20,46 @@ setopt correct                # Auto-correct command names
 setopt nocaseglob             # Case-insensitive globbing
 
 # --- History Configuration ---
+mkdir -p "$XDG_STATE_HOME/zsh" "$XDG_CACHE_HOME/zsh"
 HISTFILE="${XDG_STATE_HOME}/zsh/history"
 HISTSIZE=10000
 SAVEHIST=10000
 
-# --- Zinit Plugin Manager ---
-# https://github.com/zdharma-continuum/zinit
-ZINIT_HOME="${XDG_DATA_HOME}/zinit/zinit.git"
-if [[ -f "$ZINIT_HOME/zinit.zsh" ]]; then
-  source "$ZINIT_HOME/zinit.zsh"
-else
-  echo "Zinit not found. Please install it at $ZINIT_HOME"
-fi
+# --- Completions ---
+autoload -Uz compinit
+compinit -d "$XDG_CACHE_HOME/zsh/zcompdump"
 
 # --- Plugins ---
-# Use `light` for minimal plugin loading
-# Use `wait` to defer loading after shell prompt shows
-
-zinit light zsh-users/zsh-autosuggestions       # Suggests commands as you type
-zinit light zsh-users/zsh-syntax-highlighting   # Highlights syntax errors
-zinit light zsh-users/zsh-completions           # Adds more completions
-zinit light djui/alias-tips                     # Reminds you of defined aliases
-zinit wait lucid for \
-  zdharma-continuum/fast-syntax-highlighting    # Faster highlighting
+ZSH_PLUGIN_DIR="${XDG_DATA_HOME}/zsh/plugins"
+if [[ -t 0 && -t 1 && -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
 
 # --- Initialize zoxide ---
-eval "$(zoxide init zsh)"
+if command -v zoxide &>/dev/null; then
+  zoxide_init="$(zoxide init zsh 2>/dev/null)" && eval "$zoxide_init"
+  unset zoxide_init
+fi
 
 # --- Prompt (Starship) ---
 # https://starship.rs/
 if command -v starship &>/dev/null; then
-  eval "$(starship init zsh)"
+  starship_init="$(starship init zsh 2>/dev/null)" && eval "$starship_init"
+  unset starship_init
 fi
 
 # --- mise (language/runtime version manager) ---
 # Replaces NVM, SDKMAN, and other version managers
 # https://mise.jdx.dev/
-if command -v mise &>/dev/null; then
+if command -v mise &>/dev/null && mise hook-env -s zsh >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
 fi
 
 # --- fzf ---
 export RIPGREP_CONFIG_PATH="$XDG_CONFIG_HOME/ripgrep/ripgreprc"
-[[ -f "$XDG_CONFIG_HOME/fzf/fzf.zsh" ]] && source "$XDG_CONFIG_HOME/fzf/fzf.zsh"
+if [[ -t 0 && -t 1 ]] && command -v fzf &>/dev/null && [[ -f "$XDG_CONFIG_HOME/fzf/fzf.zsh" ]]; then
+  source "$XDG_CONFIG_HOME/fzf/fzf.zsh"
+fi
 
 # --- opencode ---
 export PATH="$HOME/.opencode/bin:$PATH"
@@ -75,3 +72,8 @@ done
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# zsh-syntax-highlighting must be sourced at the end of .zshrc.
+if [[ -t 0 && -t 1 && -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+  source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi

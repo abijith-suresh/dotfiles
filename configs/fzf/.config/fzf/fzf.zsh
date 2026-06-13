@@ -5,14 +5,22 @@
 source <(fzf --zsh)
 
 # Use ripgrep for file finding (respects .gitignore, finds hidden files)
-export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git"'
+if command -v rg >/dev/null 2>&1; then
+  export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git"'
+fi
 
 # Official Catppuccin Mocha palette from catppuccin/fzf
-source "${XDG_CONFIG_HOME:-$HOME/.config}/fzf/themes/catppuccin-mocha.sh"
+if [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/fzf/themes/catppuccin-mocha.sh" ]; then
+  source "${XDG_CONFIG_HOME:-$HOME/.config}/fzf/themes/catppuccin-mocha.sh"
+fi
 export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS --height 40% --layout=reverse --border"
 
 # CTRL-T: file picker with bat preview
-export FZF_CTRL_T_OPTS='--preview "bat --color=always --style=numbers {}"'
+if command -v bat >/dev/null 2>&1; then
+  export FZF_CTRL_T_OPTS='--preview "bat --color=always --style=numbers {}"'
+fi
 
 # ALT-C: directory picker with eza tree preview
-export FZF_ALT_C_OPTS='--preview "eza --tree --icons {}"'
+if command -v eza >/dev/null 2>&1; then
+  export FZF_ALT_C_OPTS='--preview "eza --tree --icons {}"'
+fi

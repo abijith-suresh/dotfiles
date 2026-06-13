@@ -179,7 +179,10 @@ ensure_xdg_dirs() {
     "$HOME/.config" \
     "$HOME/.local/bin" \
     "$HOME/.local/share" \
+    "$HOME/.local/share/zsh/plugins" \
     "$HOME/.local/state" \
+    "$HOME/.local/state/zsh" \
+    "$HOME/.cache/zsh" \
     "$HOME/.cache"
 }
 

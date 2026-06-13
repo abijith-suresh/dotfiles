@@ -89,6 +89,7 @@ CLI/TUI:
 - `tmux`
 - `vim`
 - `zellij`
+- `zsh-plugins`
 - `zoxide`
 
 Agents:
