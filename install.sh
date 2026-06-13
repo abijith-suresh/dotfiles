@@ -1,95 +1,73 @@
 #!/usr/bin/env bash
-# Minimal bootstrap entrypoint for a fresh machine
-
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="$DOTFILES_DIR/install"
+export DOTFILES_DIR
 
-# shellcheck disable=SC1091
-source "$INSTALL_DIR/lib/common.sh"
-# shellcheck disable=SC1091
-source "$INSTALL_DIR/lib/os.sh"
-# ui.sh is already sourced transitively through common.sh
+# shellcheck disable=SC1090,SC1091
+source "$DOTFILES_DIR/install/lib.sh"
 
-DOTFILES_CLI="$DOTFILES_DIR/configs/bin/.local/bin/dotfiles"
+FOUNDATION_APPS=(mise zsh git)
+CLI_APPS=(
+  bat
+  btop
+  eza
+  fastfetch
+  fd
+  fzf
+  gh
+  lazydocker
+  lazygit
+  neovim
+  ripgrep
+  shellcheck
+  shfmt
+  starship
+  tmux
+  vim
+  zellij
+  zoxide
+)
+AGENT_APPS=(claude codex copilot opencode pi)
+LANGUAGES=(node bun java python go)
 
-usage() {
-  cat <<'EOF'
-Usage: ./install.sh
+run_phase() {
+  local label="$1"
+  local dir="$2"
+  local mode="$3"
+  shift 3
 
-Bootstrap minimal dependencies, make the dotfiles CLI available,
-and optionally launch the interactive dotfiles installer.
-EOF
+  section "$label"
+  local item script
+  for item in "$@"; do
+    script="$DOTFILES_DIR/$dir/$item.sh"
+    if [ "$mode" = "required" ]; then
+      run_required_script "$item" "$script"
+    else
+      run_tolerant_script "$item" "$script"
+    fi
+  done
 }
 
-case "${1:-}" in
-  "") ;;
-  -h|--help)
-    usage
-    exit 0
-    ;;
-  *)
-    usage >&2
-    exit 1
-    ;;
-esac
+detect_platform
+path_prepend_local_bin
 
-ui_header
+section "Detected platform"
+ok "$PLATFORM using $PKG_MANAGER"
 
-platform="$(detect_os)"
-case "$platform" in
-  wsl)
-    printf '%s     Platform detected: %sWSL Ubuntu%s\n\n' \
-      "$_UI_MUTED" "$_UI_BLUE" "$_UI_RST"
-    ;;
-  linux)
-    printf '%s     Platform detected: %sNative Ubuntu / Debian%s\n\n' \
-      "$_UI_MUTED" "$_UI_BLUE" "$_UI_RST"
-    ;;
-  arch)
-    ui_error "Arch support is not implemented yet."
-    exit 1
-    ;;
-  fedora)
-    ui_error "Fedora support is not implemented yet."
-    exit 1
-    ;;
-  macos)
-    ui_error "macOS support is not implemented yet."
-    exit 1
-    ;;
-  *)
-    ui_error "Unsupported platform."
-    exit 1
-    ;;
-esac
+section "Bootstrapping"
+run_required_script "base packages" "$DOTFILES_DIR/install/bootstrap/$PKG_MANAGER.sh"
+ensure_xdg_dirs
+ok "XDG directories"
 
-if ! ui_confirm "Proceed with bootstrap?"; then
-  ui_info "Aborted."
-  exit 0
-fi
+run_phase "Foundation" "install/apps/cli" "required" "${FOUNDATION_APPS[@]}"
+run_phase "CLI and TUI apps" "install/apps/cli" "tolerant" "${CLI_APPS[@]}"
+run_phase "Agent CLIs" "install/apps/agents" "tolerant" "${AGENT_APPS[@]}"
+run_phase "Languages and editor tooling" "install/languages" "tolerant" "${LANGUAGES[@]}"
 
-ensure_sudo_access
+section "Configuration"
+# shellcheck disable=SC1090,SC1091
+source "$DOTFILES_DIR/install/stow.sh"
+stow_all
 
-ui_section "Bootstrapping"
-
-# Steps 1 and 3 are local/config — use dot spinner
-# Step 2 is a download — use globe spinner
-export DOTFILES_SPINNER=dot
-run_named_script "[1/3] Installing bootstrap dependencies" "$INSTALL_DIR/bootstrap/linux-apt.sh"
-export DOTFILES_SPINNER=globe
-run_named_script "[2/3] Installing gum" "$INSTALL_DIR/tools/app-gum.sh"
-export DOTFILES_SPINNER=dot
-run_named_script "[3/3] Making dotfiles CLI available" "$INSTALL_DIR/tools/app-bin.sh"
-
-ui_banner_success "Bootstrap complete" "dotfiles CLI is ready"
-ui_info "Use 'dotfiles install' for the full setup flow."
-ui_info "Use 'dotfiles update' later from the CLI."
-echo ""
-
-if ui_confirm "Launch the dotfiles installer now?"; then
-  bash "$DOTFILES_CLI" install
-else
-  ui_info "When ready, run:  ~/.local/bin/dotfiles install"
-fi
+print_final_summary

@@ -108,8 +108,6 @@ vim.lsp.enable("cssls")
 vim.lsp.enable("jsonls")
 vim.lsp.enable("bashls")
 vim.lsp.enable("yamlls")
-vim.lsp.enable("dockerls")
-vim.lsp.enable("docker_compose_language_service")
 
 -- Override lua_ls for Neovim config development
 vim.lsp.config("lua_ls", {

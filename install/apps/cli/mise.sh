@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# shellcheck disable=SC1090,SC1091
+source "${DOTFILES_DIR:?}/install/lib.sh"
+
+# Source policy: official mise package-manager setup, checked 2026-06-12.
+# https://mise.jdx.dev/installing-mise.html
+if command -v mise >/dev/null 2>&1; then
+  info "mise already installed: $(mise --version)"
+  exit 0
+fi
+
+case "$PKG_MANAGER" in
+  apt)
+    pkg_install gpg wget curl
+    sudo install -dm 755 /etc/apt/keyrings
+    wget -qO - https://mise.jdx.dev/gpg-key.pub |
+      gpg --dearmor |
+      sudo tee /etc/apt/keyrings/mise-archive-keyring.gpg >/dev/null
+    echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" |
+      sudo tee /etc/apt/sources.list.d/mise.list >/dev/null
+    pkg_update
+    pkg_install mise
+    ;;
+  dnf)
+    pkg_install gpg wget curl dnf-plugins-core
+    sudo dnf config-manager --add-repo https://mise.jdx.dev/rpm/mise.repo
+    pkg_install mise
+    ;;
+  pacman)
+    pkg_install mise
+    ;;
+  brew)
+    pkg_install mise
+    ;;
+esac

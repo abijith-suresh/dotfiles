@@ -1,0 +1,11 @@
+# Source: OpenAI Codex config basics, checked 2026-06-12.
+# User-level config is read from ~/.codex/config.toml.
+
+model = "gpt-5.5"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+web_search = "cached"
+
+[features]
+multi_agent = true
+shell_snapshot = true

@@ -1,245 +1,56 @@
 # Dotfiles
 
-Personal dotfiles for WSL Ubuntu and native Ubuntu/Debian Linux.
-Managed with [GNU Stow](https://www.gnu.org/software/stow/) and organized around one primary command: `dotfiles`.
+Personal, opinionated terminal setup for my machines.
 
----
+This repo exists to make a fresh machine feel like mine quickly. It installs the tools I use, then deploys the tracked config under `configs/` with GNU Stow.
 
-## Quick Start
+## Install
+
+Remote bootstrap:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/main/boot.sh)"
+```
+
+Test a branch:
+
+```bash
+DOTFILES_REF=refactor/dotfiles-restructure bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/main/boot.sh)"
+```
+
+Local checkout:
 
 ```bash
 git clone https://github.com/abijith-suresh/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
-./install.sh
+~/.dotfiles/install.sh
 ```
 
-### Install flow on a fresh system
+## Platform Status
 
-`install.sh` is intentionally small.
+- Supported: WSL Ubuntu, Ubuntu, Debian
+- Experimental: Fedora, Arch
+- Untested: macOS
 
-It does only enough to bootstrap the real workflow:
-1. Detect platform (`wsl` or `linux`)
-2. Install minimal prerequisites (`git`, `curl`, `wget`, `jq`, `stow`, `gum`)
-3. Stow the `bin` package so the `dotfiles` CLI is available
-4. Optionally launch the interactive `dotfiles install` flow
+## What It Does
 
-`install.sh` does **not** force the full profile anymore.
-It bootstraps the machine, exposes the CLI, and leaves the real setup to `dotfiles install`.
+- Installs terminal tools, TUIs, coding agents, language runtimes, and editor tooling I use.
+- Installs `zsh`, Zinit, Starship, tmux plugins, Vim Catppuccin, and Neovim config.
+- Stows tracked config packages from `configs/`.
+- Backs up unmanaged config conflicts next to the original file before stowing repo config.
 
----
-
-## The `dotfiles` command
-
-Once installed, the main workflow is:
+If backups are created during install, clean them later with:
 
 ```bash
-dotfiles                    # Interactive menu
-dotfiles install            # Category-based installer
-dotfiles install everything # Base + terminal tools + agents
-dotfiles update             # Update system and managed tools
-dotfiles clean-backups      # Delete dotfiles-created .backup files
+~/.dotfiles/scripts/clean-backups.sh --dry-run
+~/.dotfiles/scripts/clean-backups.sh --yes
 ```
 
-This is the preferred interface after the first bootstrap.
+## Development
 
-### Install categories
-
-`dotfiles install` is category-first:
-- Base Setup
-- Terminal Tools
-- Languages
-- Coding Agents
-- Clean Backups
-- Install Everything
-
-`Install Everything` intentionally excludes languages.
-
----
-
-## Theme
-
-This repo is now intentionally **single-theme**: Catppuccin Mocha.
-
-There is no theme switcher anymore. The source of truth lives directly in the tracked files under `configs/`, which keeps the setup simpler and easier to maintain.
-
-### Themed tools
-
-Catppuccin is applied directly to:
-- `alacritty`
-- `bat`
-- `btop`
-- `fzf`
-- `lazydocker`
-- `lazygit`
-- `neovim`
-- `starship`
-- `tmux`
-- `vim`
-- `zellij`
-
----
-
-## Repository structure
-
-```text
-dotfiles/
-├── install.sh                 # Minimal bootstrap entrypoint
-├── configs/                   # GNU Stow packages (source of truth for deployed config)
-│   ├── alacritty/
-│   ├── bash/
-│   ├── bat/
-│   ├── bin/                   # ~/.local/bin/dotfiles
-│   ├── btop/
-│   ├── fastfetch/
-│   ├── fzf/
-│   ├── git/
-│   ├── lazydocker/
-│   ├── lazygit/
-│   ├── nvim/
-│   ├── ripgrep/
-│   ├── starship/
-│   ├── tmux/
-│   ├── vim/
-│   ├── zellij/
-│   └── zsh/
-├── install/
-│   ├── bootstrap/             # Minimal host bootstrapping
-│   ├── categories/            # Category orchestration scripts
-│   ├── lib/                   # Shared helpers
-│   ├── profiles/              # Platform entrypoints for full install
-│   ├── tools/                 # Per-app/per-tool installers
-│   ├── agents/                # Per-agent installers
-│   └── languages/             # Per-language installers + selector
-├── scripts/
-│   ├── clean-backups.sh       # Removes managed .backup files
-│   └── update.sh              # Delegates to dotfiles update
-├── README.md
-└── AGENTS.md
-```
-
----
-
-## Tooling defaults
-
-### Shell
-- Primary shell: `zsh`
-- Bash fallback config is also maintained
-- Prompt: `starship`
-- Plugin manager: `zinit`
-- Runtime/version manager: `mise`
-
-### Terminal tools
-- Search: `ripgrep`
-- Fuzzy finder: `fzf`
-- File finder: `fd`
-- File listing: `eza`
-- System info: `fastfetch`
-- System monitor: `btop`
-- Git TUI: `lazygit`
-- Docker TUI: `lazydocker`
-- GitHub CLI: `gh`
-
-### Multiplexers
-- `tmux` (kept)
-- `zellij` (added from omakub-inspired direction)
-
----
-
-## Language management
-
-`mise` is the single version manager.
-
-Examples:
+Repo validation:
 
 ```bash
-mise use --global node@lts
-mise use --global java@latest
-mise use --global python@latest
-mise use --global go@latest
+~/.dotfiles/scripts/validate.sh
 ```
 
-The interactive installer can also set these up for you via:
-
-```bash
-dotfiles install
-```
-
----
-
-## Coding agents
-
-Coding agents are split into per-agent installers under `install/agents/`.
-
-Available installers include:
-- pi
-- claude
-- codex
-- gemini
-- copilot
-- opencode
-
-The category installer will install them as a group through:
-
-```bash
-dotfiles install
-```
-
----
-
-## Extending to new distros / OSes
-
-The repo is structured so future platform work is additive:
-
-- `install/bootstrap/` for package-manager-level bootstrapping
-- `install/profiles/` for platform orchestration
-- `install/tools/`, `install/agents/`, `install/languages/` for reusable installers
-
-Planned future targets:
-- Arch Linux
-- Fedora
-- macOS
-
----
-
-## Troubleshooting
-
-### WSL Docker completion bug
-
-Broken Docker completion symlinks under WSL can interfere with zsh startup.
-The WSL install profile removes the common broken file and clears `.zcompdump*`.
-
-### Stow conflicts
-
-The install flow now auto-backs up many unmanaged file conflicts as `*.backup`
-before re-stowing packages.
-
-If a conflict involves a directory shape mismatch, you may still need to resolve it manually.
-Example:
-
-```bash
-mv ~/.config/btop/btop.conf ~/.config/btop/btop.conf.backup
-cd ~/.dotfiles/configs
-stow --restow btop
-```
-
-### Install/restow backups
-
-If `dotfiles install` encounters unmanaged files for managed targets,
-it may back them up as `*.backup` before re-stowing.
-
-After testing, you can remove those backups with:
-
-```bash
-dotfiles clean-backups
-```
-
----
-
-## Philosophy
-
-- one primary workflow: `dotfiles`
-- tracked config as the source of truth
-- Catppuccin Mocha everywhere instead of a theme-switching layer
-- GNU Stow as the deployment model
-- modular install scripts
-- easy future extension to other distros and operating systems
+See `docs/` for context, architecture, and contribution workflow.
