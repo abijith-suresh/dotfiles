@@ -12,14 +12,14 @@ if command -v zellij >/dev/null 2>&1; then
 fi
 
 case "$PKG_MANAGER" in
-  pacman|brew)
+  pacman | brew)
     pkg_install zellij
     ;;
   *)
     arch="$(uname -m)"
     case "$arch" in
-      x86_64|amd64) asset="zellij-x86_64-unknown-linux-musl.tar.gz" ;;
-      arm64|aarch64) asset="zellij-aarch64-unknown-linux-musl.tar.gz" ;;
+      x86_64 | amd64) asset="zellij-x86_64-unknown-linux-musl.tar.gz" ;;
+      arm64 | aarch64) asset="zellij-aarch64-unknown-linux-musl.tar.gz" ;;
       *) die "Unsupported zellij architecture: $arch" ;;
     esac
     install_binary_from_tarball \

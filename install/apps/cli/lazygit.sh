@@ -12,14 +12,14 @@ if command -v lazygit >/dev/null 2>&1; then
 fi
 
 case "$PKG_MANAGER" in
-  pacman|brew)
+  pacman | brew)
     pkg_install lazygit
     ;;
   *)
     arch="$(uname -m)"
     case "$arch" in
-      x86_64|amd64) asset_arch="x86_64" ;;
-      arm64|aarch64) asset_arch="arm64" ;;
+      x86_64 | amd64) asset_arch="x86_64" ;;
+      arm64 | aarch64) asset_arch="arm64" ;;
       *) die "Unsupported lazygit architecture: $arch" ;;
     esac
     tag="$(github_latest_tag jesseduffield/lazygit)"

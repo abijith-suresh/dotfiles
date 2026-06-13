@@ -18,8 +18,8 @@ case "$PKG_MANAGER" in
   *)
     arch="$(uname -m)"
     case "$arch" in
-      x86_64|amd64) asset_arch="x86_64" ;;
-      arm64|aarch64) asset_arch="arm64" ;;
+      x86_64 | amd64) asset_arch="x86_64" ;;
+      arm64 | aarch64) asset_arch="arm64" ;;
       *) die "Unsupported lazydocker architecture: $arch" ;;
     esac
     tag="$(github_latest_tag jesseduffield/lazydocker)"

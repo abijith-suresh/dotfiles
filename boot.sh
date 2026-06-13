@@ -31,7 +31,7 @@ install_bootstrap_deps() {
       # shellcheck disable=SC1091
       . /etc/os-release
       case "${ID:-}" in
-        ubuntu|debian)
+        ubuntu | debian)
           sudo apt update -y
           sudo apt install -y git curl ca-certificates
           ;;

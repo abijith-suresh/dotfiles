@@ -6,7 +6,7 @@ source "${DOTFILES_DIR:?}/install/lib.sh"
 
 # Source policy: package-manager shfmt where available; fallback to go install if needed.
 case "$PKG_MANAGER" in
-  apt|dnf|pacman|brew)
+  apt | dnf | pacman | brew)
     pkg_install shfmt
     ;;
 esac

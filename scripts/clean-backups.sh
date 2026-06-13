@@ -23,9 +23,15 @@ auto_yes=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run) dry_run=1 ;;
-    --yes)     auto_yes=1 ;;
-    -h|--help) usage; exit 0 ;;
-    *)         usage >&2; exit 1 ;;
+    --yes) auto_yes=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
   esac
   shift
 done

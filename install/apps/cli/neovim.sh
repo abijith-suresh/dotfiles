@@ -19,17 +19,17 @@ if command -v nvim >/dev/null 2>&1; then
 fi
 
 case "$PKG_MANAGER" in
-  brew|pacman)
+  brew | pacman)
     pkg_install neovim
     ;;
   *)
     arch="$(uname -m)"
     case "$arch" in
-      x86_64|amd64)
+      x86_64 | amd64)
         asset="nvim-linux-x86_64.tar.gz"
         extracted="nvim-linux-x86_64"
         ;;
-      arm64|aarch64)
+      arm64 | aarch64)
         asset="nvim-linux-arm64.tar.gz"
         extracted="nvim-linux-arm64"
         ;;
