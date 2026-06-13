@@ -1,1 +1,14 @@
 --target=~
+--ignore=\.git
+--ignore=\.gitignore
+--ignore=\.DS_Store
+--ignore=\.zcompdump.*
+--ignore=\.zsh_history
+--ignore=.*\.zwc
+--ignore=.*\.zwc\.old
+--ignore=.*\.local
+--ignore=auth\.json
+--ignore=sessions
+--ignore=logs
+--ignore=statsig
+--ignore=cache

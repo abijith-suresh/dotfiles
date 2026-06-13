@@ -1,18 +1,13 @@
 #!/usr/bin/env bash
-# Remove dotfiles-managed backup files created next to known stow targets.
+# Remove backup files created next to known dotfiles-managed Stow targets.
 
 set -euo pipefail
 
 SELF="$(readlink -f "$0")"
 DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
 
-_RST=$'\e[0m'
-_GREEN=$'\e[38;2;166;227;161m'
-_YELLOW=$'\e[38;2;249;226;175m'
-_RED=$'\e[38;2;243;139;168m'
-_MUTED=$'\e[38;2;108;112;134m'
-_BLUE=$'\e[38;2;137;180;250m'
-_ACCENT=$'\e[38;2;203;166;247m'
+# shellcheck disable=SC1090,SC1091
+source "$DOTFILES_DIR/install/stow.sh"
 
 usage() {
   cat <<'EOF'
@@ -35,55 +30,62 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-backups=()
-for package_dir in "$DOTFILES_DIR"/configs/*/; do
-  pkg="$(basename "$package_dir")"
-  [ "$pkg" = ".stowrc" ] && continue
+backup_patterns_for_target() {
+  local target="$1"
+  local backup_dir backup_name
 
-  while IFS= read -r -d '' rel_path; do
+  backup_dir="$(dirname "$target")"
+  backup_name="$(basename "$target")"
+  [ -d "$backup_dir" ] || return 0
+
+  find "$backup_dir" -maxdepth 1 \( -type f -o -type l -o -type d \) \
+    \( -name "$backup_name.backup" -o -name "$backup_name.backup.*" \)
+}
+
+backups=()
+for pkg in "${STOW_PACKAGES[@]}"; do
+  package_dir="$DOTFILES_DIR/configs/$pkg"
+  [ -d "$package_dir" ] || continue
+
+  while IFS= read -r rel_path; do
     rel_path="${rel_path#./}"
     target="$HOME/$rel_path"
-
-    if [ -e "$target.backup" ] || [ -L "$target.backup" ]; then
-      backups+=("$target.backup")
-    fi
-
-    backup_dir="$(dirname "$target")"
-    backup_name="$(basename "$target")"
-    if [ -d "$backup_dir" ]; then
-      while IFS= read -r numbered_backup; do
-        backups+=("$numbered_backup")
-      done < <(find "$backup_dir" -maxdepth 1 \( -type f -o -type l -o -type d \) \
-        -name "$backup_name.backup.*" | sort)
-    fi
-  done < <(cd "$package_dir" && { find . -mindepth 1 -type d -print0; find . -mindepth 1 \( -type f -o -type l \) -print0; })
+    while IFS= read -r backup; do
+      backups+=("$backup")
+    done < <(backup_patterns_for_target "$target")
+  done < <(package_entries "$package_dir")
 done
 
-mapfile -t backups < <(printf '%s\n' "${backups[@]}" | awk '!seen[$0]++')
+if [ "${#backups[@]}" -gt 0 ]; then
+  mapfile -t backups < <(printf '%s\n' "${backups[@]}" | awk 'NF && !seen[$0]++')
+fi
 
 if [ "${#backups[@]}" -eq 0 ]; then
-  printf '%s     No dotfiles backups found.%s\n' "$_MUTED" "$_RST"
+  info "No dotfiles backups found."
   exit 0
 fi
 
 if [ "$dry_run" -eq 1 ]; then
-  printf '%s  Dry run — would remove the following backups:%s\n' "$_YELLOW" "$_RST"
+  warn "Dry run - would remove the following backups:"
   for b in "${backups[@]}"; do
-    printf '%s     %s%s\n' "$_MUTED" "$b" "$_RST"
+    printf '     %s\n' "$b"
   done
   exit 0
 fi
 
-printf '\n%s  The following backups will be removed:%s\n' "$_MUTED" "$_RST"
+printf '\nThe following backups will be removed:\n'
 for b in "${backups[@]}"; do
-  printf '%s     %s%s\n' "$_MUTED" "$b" "$_RST"
+  printf '     %s\n' "$b"
 done
 echo ""
 
 if [ "$auto_yes" -ne 1 ]; then
-  printf '%s? Delete these backup files? [y/N] %s' "$_ACCENT" "$_RST"
+  printf 'Delete these backup files? [y/N] '
   read -r reply
-  [[ "$reply" =~ ^[Yy]$ ]] || { printf '%s     Aborted.%s\n' "$_MUTED" "$_RST"; exit 0; }
+  [[ "$reply" =~ ^[Yy]$ ]] || {
+    info "Aborted."
+    exit 0
+  }
 fi
 
 count=0
@@ -92,5 +94,5 @@ for backup in "${backups[@]}"; do
   count=$((count + 1))
 done
 
-printf '\n%s  ✓  Removed %d backup(s)%s\n' "$_GREEN" "$count" "$_RST"
+printf '\nRemoved %d backup(s)\n' "$count"
 echo ""

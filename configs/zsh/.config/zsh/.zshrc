@@ -44,9 +44,6 @@ zinit light djui/alias-tips                     # Reminds you of defined aliases
 zinit wait lucid for \
   zdharma-continuum/fast-syntax-highlighting    # Faster highlighting
 
-# --- Docker Completions (via Zinit — avoids WSL vendor-completions breakage) ---
-zinit snippet "https://raw.githubusercontent.com/docker/cli/master/contrib/completion/zsh/_docker"
-
 # --- Initialize zoxide ---
 eval "$(zoxide init zsh)"
 
@@ -74,9 +71,5 @@ for f in "$ZDOTDIR"/functions/*.zsh(N); do
   source "$f"
 done
 
-# --- Source Local Overrides ---
-# Allows custom user additions without touching main config
-[[ -f "$ZDOTDIR/.zshrc.local" ]] && source "$ZDOTDIR/.zshrc.local"
-
 # bun completions
-[ -s "/home/abijith/.bun/_bun" ] && source "/home/abijith/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
