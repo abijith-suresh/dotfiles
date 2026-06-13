@@ -34,7 +34,7 @@ git clone https://github.com/abijith-suresh/dotfiles.git ~/.dotfiles
 ## What It Does
 
 - Installs terminal tools, TUIs, coding agents, language runtimes, and editor tooling I use.
-- Installs `zsh`, Zinit, Starship, tmux plugins, Vim Catppuccin, and Neovim config.
+- Installs `zsh`, explicit zsh plugins, Starship, tmux plugins, Vim Catppuccin, and Neovim config.
 - Stows tracked config packages from `configs/`.
 - Backs up unmanaged config conflicts next to the original file before stowing repo config.
 

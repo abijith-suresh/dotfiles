@@ -26,6 +26,7 @@ CLI_APPS=(
   tmux
   vim
   zellij
+  zsh-plugins
   zoxide
 )
 AGENT_APPS=(claude codex copilot opencode pi)

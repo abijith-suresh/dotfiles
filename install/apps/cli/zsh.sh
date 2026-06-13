@@ -4,15 +4,8 @@ set -euo pipefail
 # shellcheck disable=SC1090,SC1091
 source "${DOTFILES_DIR:?}/install/lib.sh"
 
-# Source policy: package-manager zsh plus zinit runtime plugin manager.
+# Source policy: package-manager zsh only; plugins are installed explicitly by zsh-plugins.sh.
 pkg_install zsh
-
-zinit_dir="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
-if [ -d "$zinit_dir" ]; then
-  info "Zinit already installed"
-else
-  git clone --depth=1 https://github.com/zdharma-continuum/zinit.git "$zinit_dir"
-fi
 
 zsh_path="$(command -v zsh || true)"
 if [ -z "$zsh_path" ]; then
