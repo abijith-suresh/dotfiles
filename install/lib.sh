@@ -179,9 +179,12 @@ ensure_xdg_dirs() {
     "$HOME/.config" \
     "$HOME/.local/bin" \
     "$HOME/.local/share" \
+    "$HOME/.local/share/go" \
     "$HOME/.local/share/zsh/plugins" \
     "$HOME/.local/state" \
     "$HOME/.local/state/zsh" \
+    "$HOME/.cache/go/pkg/mod" \
+    "$HOME/.cache/go-build" \
     "$HOME/.cache/zsh" \
     "$HOME/.cache"
 }
