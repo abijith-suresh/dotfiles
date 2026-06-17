@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.78.1",
   "defaultProvider": "opencode-go",
-  "defaultModel": "minimax-m3",
-  "defaultThinkingLevel": "high",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "xhigh",
   "hideThinkingBlock": false
 }
