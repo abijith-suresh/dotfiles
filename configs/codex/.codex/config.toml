@@ -5,7 +5,30 @@ model = "gpt-5.5"
 model_reasoning_effort = "high"
 personality = "pragmatic"
 web_search = "cached"
+approvals_reviewer = "user"
 
 [features]
 multi_agent = true
 shell_snapshot = true
+
+[projects."/home/abijith/Code/projects/abijith.sh"]
+trust_level = "trusted"
+
+[projects."/home/abijith"]
+trust_level = "trusted"
+
+[projects."/home/abijith/Code/projects"]
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[apps.connector_76869538009648d5b282a4bb21c3d157.tools.github_create_pull_request]
+approval_mode = "approve"
+
+[apps.connector_76869538009648d5b282a4bb21c3d157.tools.github_add_issue_assignees]
+approval_mode = "approve"
+
+[notice]
+hide_rate_limit_model_nudge = true
+hide_full_access_warning = true

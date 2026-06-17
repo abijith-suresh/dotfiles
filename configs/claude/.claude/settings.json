@@ -1,3 +1,16 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json"
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "additionalDirectories": ["~"],
+    "allow": [
+      "Bash",
+      "Edit",
+      "Read",
+      "Write",
+      "Grep",
+      "Glob",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
 }
