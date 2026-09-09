@@ -1,0 +1,45 @@
+name: Validate dotfiles
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            jq \
+            shellcheck \
+            shfmt \
+            stow \
+            zsh
+
+      - name: Run repository validation
+        run: scripts/validate.sh
+
+      - name: Test Stow installation behavior
+        run: scripts/test-stow.sh
+
+      - name: Parse managed JSON and TOML
+        run: |
+          jq empty configs/claude/.claude/settings.json
+          jq empty configs/pi/.pi/agent/settings.json
+          python3 - <<'PY'
+          import pathlib
+          import tomllib
+
+          for path in pathlib.Path("configs").rglob("*.toml"):
+              with path.open("rb") as handle:
+                  tomllib.load(handle)
+          PY
