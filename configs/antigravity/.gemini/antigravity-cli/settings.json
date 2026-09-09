@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "command(rm -rf)",
+      "command(git reset --hard)",
+      "command(git clean -fd)"
+    ]
+  }
+}

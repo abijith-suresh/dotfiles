@@ -10,6 +10,8 @@ fi
 source "$DOTFILES_DIR/install/lib.sh"
 
 STOW_PACKAGES=(
+  agents
+  antigravity
   bat
   btop
   claude
