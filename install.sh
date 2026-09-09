@@ -29,7 +29,7 @@ CLI_APPS=(
   zsh-plugins
   zoxide
 )
-AGENT_APPS=(claude codex copilot opencode pi)
+AGENT_APPS=(antigravity claude codex copilot opencode pi)
 AGENT_SETUP_APPS=(pi-setup)
 LANGUAGES=(node bun java python go)
 
