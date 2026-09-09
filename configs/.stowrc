@@ -2,7 +2,8 @@
 --ignore=\.git
 --ignore=\.gitignore
 --ignore=\.DS_Store
---ignore=\.zcompdump.*
+--ignore=\.zcompdump
+--ignore=node_modules
 --ignore=\.zsh_history
 --ignore=.*\.zwc
 --ignore=.*\.zwc\.old
