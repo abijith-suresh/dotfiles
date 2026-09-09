@@ -40,6 +40,7 @@ package_entries() {
       \( -name '.DS_Store' -o -name '.gitignore' -o -name '.zcompdump*' -o -name '.zsh_history' \) -prune -o \
       \( -name '*.zwc' -o -name '*.zwc.old' -o -name '*.local' -o -name 'auth.json' \) -prune -o \
       \( -name 'sessions' -o -name 'logs' -o -name 'statsig' -o -name 'cache' \) -prune -o \
+      \( -name 'node_modules' \) -prune -o \
       \( -type f -o -type l \) -print
   )
 }
@@ -171,7 +172,10 @@ backup_package_conflicts() {
 stow_package() {
   local package="$1"
   backup_package_conflicts "$package"
-  if ! stow --dir "$DOTFILES_DIR/configs" --target "$HOME" --stow --no-folding "$package"; then
+  if ! (
+    cd "$DOTFILES_DIR/configs"
+    stow --dir "$DOTFILES_DIR/configs" --target "$HOME" --stow --no-folding "$package"
+  ); then
     warn "Stow reported a conflict for $package; retrying after backup scan"
     backup_package_conflicts "$package"
     stow --dir "$DOTFILES_DIR/configs" --target "$HOME" --stow --no-folding "$package"

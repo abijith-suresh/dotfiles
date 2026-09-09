@@ -7,6 +7,7 @@ Thumbs.db
 *.zwc.old
 
 # Runtime / cache files inside tracked config trees
+**/node_modules/
 configs/tmux/.config/tmux/plugins/
 configs/zsh/.config/zsh/.zsh_history
 configs/zsh/.config/zsh/.zcompdump*
