@@ -13,6 +13,10 @@ scripts/validate.sh
 
 ## Validation
 
+The GitHub Actions workflow also runs scripts/test-stow.sh in a temporary
+home. That test checks a clean deployment, a repeated deployment, and backup
+behavior when an unmanaged config conflicts with a managed target.
+
 `scripts/validate.sh` runs:
 
 - `git diff --check`
