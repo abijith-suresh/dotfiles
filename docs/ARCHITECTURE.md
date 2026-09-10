@@ -106,6 +106,10 @@ configs/pi/.pi/agent. Stow deploys those files first, then the Pi setup step
 runs reproducible npm ci installs in ~/.pi/agent. Authentication, sessions,
 caches, and node_modules remain runtime state and are excluded from Stow.
 
+The agent install list includes the Antigravity CLI, which installs the agy
+command using Google's official Linux and macOS installer. Its authentication
+and generated state remain unmanaged.
+
 Languages:
 
 - `node`
