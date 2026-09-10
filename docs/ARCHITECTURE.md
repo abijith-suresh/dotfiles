@@ -17,7 +17,8 @@
 6. Install coding agent CLIs.
 7. Install language runtimes and editor tooling.
 8. Stow config packages.
-9. Print a final summary.
+9. Install dependencies for managed agent packages.
+10. Print a final summary.
 
 Script order is controlled in `install.sh`, not by filename sorting.
 
@@ -99,6 +100,11 @@ Agents:
 - `copilot`
 - `opencode`
 - `pi`
+
+Pi's extensions, skills, theme, TypeScript sources, and npm lockfiles live under
+configs/pi/.pi/agent. Stow deploys those files first, then the Pi setup step
+runs reproducible npm ci installs in ~/.pi/agent. Authentication, sessions,
+caches, and node_modules remain runtime state and are excluded from Stow.
 
 Languages:
 
