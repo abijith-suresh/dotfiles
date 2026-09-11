@@ -1,0 +1,20 @@
+{
+  "toolPermission": "request-review",
+  "artifactReviewPolicy": "asks-for-review",
+  "allowNonWorkspaceAccess": "off",
+  "permissions": {
+    "deny": [
+      "command(rm -rf)",
+      "command(sudo)",
+      "command(git reset --hard)",
+      "command(git clean -fd)",
+      "command(git push --force)",
+      "write_file(.git/)",
+      "read_file(/home/abijith/.ssh)",
+      "read_file(/home/abijith/.gnupg)",
+      "read_file(/home/abijith/.aws)",
+      "read_file(/home/abijith/.config/gh/hosts.yml)",
+      "read_file(/home/abijith/.pi/agent/auth.json)"
+    ]
+  }
+}
