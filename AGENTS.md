@@ -2,15 +2,23 @@
 
 This is a personal, opinionated GNU Stow dotfiles repo. Agents should preserve the direct setup path and avoid rebuilding customization layers.
 
-## Document Ownership
+## Canonical Documents
 
-- `README.md` is user-facing only.
-- `docs/CONTEXT.md` is product truth: goals, non-goals, constraints, and success criteria.
-- `docs/ARCHITECTURE.md` is technical truth.
-- `docs/CONTRIBUTING.md` is development workflow.
-- `AGENTS.md` is agent behavior and truth maintenance rules.
+- `README.md` is the user-facing overview and installation guide.
+- `CONTRIBUTING.md` is the development workflow.
+- `AGENTS.md` is the agent guidance and repository truth.
 
 When behavior changes, update the matching truth document in the same change.
+
+## Product Boundaries
+
+- This is a personal dotfiles repo, not a dotfiles framework or public distribution.
+- Keep setup direct, non-interactive, idempotent, and understandable.
+- Supported platforms are WSL Ubuntu, Ubuntu, and Debian. Fedora and Arch are
+  experimental; macOS is untested.
+- Do not add install menus, profiles, selectors, theme switching, uninstall or
+  migration frameworks, or local override UX.
+- Do not add Docker, Podman, GUI apps, or desktop setup unless explicitly requested.
 
 ## Core Rules
 
@@ -18,12 +26,9 @@ When behavior changes, update the matching truth document in the same change.
 2. `install.sh` is the only local setup entrypoint.
 3. `boot.sh` is the only remote curl bootstrap entrypoint.
 4. Do not reintroduce the stowed `dotfiles` helper.
-5. Do not add menus, profiles, install selectors, uninstall framework, migration framework, theme switching, or local override UX.
-6. Keep Catppuccin Mocha direct and explicit in checked-in config.
-7. Keep scripts idempotent where possible.
-8. Keep Git identity managed; this is a personal repo.
-9. Do not install Docker or Podman unless explicitly requested.
-10. Do not add GUI app or desktop setup until explicitly requested.
+5. Keep Catppuccin Mocha direct and explicit in checked-in config.
+6. Keep scripts idempotent where possible.
+7. Keep Git identity managed; this is a personal repo.
 
 ## Install Architecture
 
@@ -33,6 +38,10 @@ When behavior changes, update the matching truth document in the same change.
 - `install/apps/agents/` contains coding-agent installers.
 - `install/languages/` contains `mise` runtime and editor-tooling installers.
 - `install/stow.sh` owns config deployment and conflict backup behavior.
+- `configs/pi/.pi/agent/` contains Pi's managed settings, extensions, skills,
+  themes, and locked npm manifests. `pi-setup.sh` installs dependencies after
+  Stow; authentication, sessions, logs, caches, and `node_modules` remain
+  runtime state.
 
 Script execution order is defined in `install.sh` arrays. Do not rely on filename sorting.
 

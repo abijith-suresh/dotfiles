@@ -44,7 +44,7 @@ shfmt -i 2 -ci -w boot.sh install.sh install scripts
 3. If it has managed config, add a Stow package under `configs/`.
 4. Add that package to `STOW_PACKAGES` in `install/stow.sh`.
 5. Document the install source policy in the script using official/canonical docs.
-6. Update `docs/ARCHITECTURE.md` if the managed tool list changes.
+6. Update `AGENTS.md` if repository constraints or managed-tool behavior changes.
 
 ## Removing A Tool
 
@@ -52,4 +52,4 @@ shfmt -i 2 -ci -w boot.sh install.sh install scripts
 2. Remove it from `install.sh`.
 3. Remove its config package if it has one.
 4. Remove it from `install/stow.sh`.
-5. Update docs.
+5. Update `README.md`, `AGENTS.md`, or this file when the change affects them.
