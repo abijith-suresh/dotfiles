@@ -24,11 +24,13 @@
     "format:check": "prettier --check \"extensions/**/*.ts\" \"*.json\" \"extensions/**/*.json\""
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "0.83.0",
-    "@earendil-works/pi-coding-agent": "0.83.0",
-    "@earendil-works/pi-tui": "0.83.0",
-    "effect": "^4.0.0-beta.99",
-    "typebox": "^1.3.6"
+    "effect": "^4.0.0-beta.99"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
