@@ -53,4 +53,7 @@ Repo validation:
 ~/.dotfiles/scripts/validate.sh
 ```
 
-See `docs/` for context, architecture, and contribution workflow.
+Repository guidance:
+
+- [AGENTS.md](AGENTS.md) — agent rules and repository truth
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development workflow
