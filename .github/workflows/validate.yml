@@ -31,10 +31,27 @@ jobs:
       - name: Test Stow installation behavior
         run: scripts/test-stow.sh
 
+      - name: Test Pi installer behavior
+        run: scripts/test-pi-installer.sh
+
+      - name: Check managed Pi package
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund --prefix configs/pi/.pi/agent
+          npm ci --ignore-scripts --no-audit --no-fund \
+            --prefix configs/pi/.pi/agent/extensions/subagents
+          npm run check --prefix configs/pi/.pi/agent
+          npm run format:check --prefix configs/pi/.pi/agent
+
       - name: Parse managed JSON and TOML
         run: |
-          jq empty configs/claude/.claude/settings.json
-          jq empty configs/pi/.pi/agent/settings.json
+          json_status=0
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              *.json|*.jsonc) jq empty "$path" || json_status=1 ;;
+            esac
+          done < <(git ls-files -z -- configs)
+          [ "$json_status" -eq 0 ]
+
           python3 - <<'PY'
           import pathlib
           import tomllib
