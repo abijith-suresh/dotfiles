@@ -32,16 +32,6 @@
       "effect": "deny"
     },
     {
-      "action": "read",
-      "resource": "~/.config/gh/hosts.yml",
-      "effect": "deny"
-    },
-    {
-      "action": "read",
-      "resource": "~/.pi/agent/auth.json",
-      "effect": "deny"
-    },
-    {
       "action": "shell",
       "resource": "git status *",
       "effect": "allow"

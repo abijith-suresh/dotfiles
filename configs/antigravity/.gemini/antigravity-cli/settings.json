@@ -12,9 +12,7 @@
       "write_file(.git/)",
       "read_file(/home/abijith/.ssh)",
       "read_file(/home/abijith/.gnupg)",
-      "read_file(/home/abijith/.aws)",
-      "read_file(/home/abijith/.config/gh/hosts.yml)",
-      "read_file(/home/abijith/.pi/agent/auth.json)"
+      "read_file(/home/abijith/.aws)"
     ]
   }
 }

@@ -13,8 +13,6 @@
       "Read(~/.ssh/**)",
       "Read(~/.gnupg/**)",
       "Read(~/.aws/**)",
-      "Read(~/.config/gh/hosts.yml)",
-      "Read(~/.pi/agent/auth.json)",
       "Read(.env)",
       "Read(.env.*)"
     ]
