@@ -14,4 +14,7 @@ else
   git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
 fi
 
-TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" "$tpm_dir/bin/install_plugins" >/dev/null 2>&1 || true
+if ! TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins" "$tpm_dir/bin/install_plugins"; then
+  warn "TPM plugin installation failed"
+  exit 1
+fi
