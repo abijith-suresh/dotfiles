@@ -96,6 +96,7 @@ run_check "shfmt" check_shfmt
 run_check "shellcheck" check_shellcheck
 run_check "stow package list" check_stow_package_list
 run_check "stow dry run to temporary home" check_stow_tmp_home
+run_check "Antigravity installer behavior" "$ROOT/scripts/test-antigravity.sh"
 
 if [ "$failures" -gt 0 ]; then
   printf '\n%d validation check(s) failed.\n' "$failures" >&2
