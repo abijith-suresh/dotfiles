@@ -135,9 +135,19 @@ pkg_update() {
   detect_platform
   require_sudo
   case "$PKG_MANAGER" in
-    apt) sudo apt update -y ;;
-    dnf) sudo dnf check-update || true ;;
-    pacman) sudo pacman -Sy ;;
+    apt) sudo apt-get update ;;
+    dnf)
+      local dnf_status=0
+      sudo dnf check-update || dnf_status=$?
+      if [ "$dnf_status" -ne 0 ] && [ "$dnf_status" -ne 100 ]; then
+        die "dnf metadata check failed (exit $dnf_status)"
+      fi
+      ;;
+    pacman)
+      # Source policy: Arch does not support partial upgrades. Checked 2026-09-13.
+      # https://wiki.archlinux.org/title/System_maintenance#Partial_upgrades_are_unsupported
+      sudo pacman -Syu
+      ;;
     brew)
       ensure_homebrew
       brew update
@@ -237,10 +247,12 @@ install_binary_from_tarball() {
   local strip_components="${3:-0}"
   local tmp
   tmp="$(mktemp -d)"
-  download_to_temp "$url" "$tmp/archive.tar.gz"
-  tar -xzf "$tmp/archive.tar.gz" -C "$tmp" --strip-components "$strip_components"
-  install -m 0755 "$tmp/$binary" "$HOME/.local/bin/$binary"
-  rm -rf "$tmp"
+  (
+    trap 'rm -rf -- "$tmp"' EXIT
+    download_to_temp "$url" "$tmp/archive.tar.gz"
+    tar -xzf "$tmp/archive.tar.gz" -C "$tmp" --strip-components "$strip_components"
+    install -m 0755 "$tmp/$binary" "$HOME/.local/bin/$binary"
+  )
 }
 
 record_config_backup() {

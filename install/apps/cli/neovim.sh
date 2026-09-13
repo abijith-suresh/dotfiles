@@ -37,12 +37,12 @@ case "$PKG_MANAGER" in
     esac
 
     tmp="$(mktemp -d)"
+    trap 'rm -rf -- "$tmp"' EXIT
     download_to_temp "https://github.com/neovim/neovim/releases/latest/download/$asset" "$tmp/$asset"
     tar -xzf "$tmp/$asset" -C "$tmp"
     rm -rf "$HOME/.local/opt/nvim"
     mkdir -p "$HOME/.local/opt" "$HOME/.local/bin"
     mv "$tmp/$extracted" "$HOME/.local/opt/nvim"
     ln -sfn "$HOME/.local/opt/nvim/bin/nvim" "$HOME/.local/bin/nvim"
-    rm -rf "$tmp"
     ;;
 esac

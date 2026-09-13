@@ -32,14 +32,16 @@ install_bootstrap_deps() {
       . /etc/os-release
       case "${ID:-}" in
         ubuntu | debian)
-          sudo apt update -y
-          sudo apt install -y git curl ca-certificates
+          sudo apt-get update
+          sudo apt-get install -y git curl ca-certificates
           ;;
         fedora)
           sudo dnf install -y git curl ca-certificates
           ;;
         arch)
-          sudo pacman -Sy --needed --noconfirm git curl ca-certificates
+          # Source policy: Arch does not support partial upgrades. Checked 2026-09-13.
+          # https://wiki.archlinux.org/title/System_maintenance#Partial_upgrades_are_unsupported
+          sudo pacman -Syu --needed --noconfirm git curl ca-certificates
           ;;
         *)
           echo "Unsupported Linux distribution: ${ID:-unknown}" >&2

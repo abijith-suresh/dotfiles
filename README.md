@@ -15,8 +15,10 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/
 Test a branch:
 
 ```bash
-DOTFILES_REF=refactor/dotfiles-restructure bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/main/boot.sh)"
+DOTFILES_REF=your-branch-name bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/main/boot.sh)"
 ```
+
+Replace `your-branch-name` with a branch that exists in this repository.
 
 Local checkout:
 
