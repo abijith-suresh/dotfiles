@@ -4,6 +4,8 @@ Personal, opinionated terminal setup for my machines.
 
 This repo exists to make a fresh machine feel like mine quickly. It installs the tools I use, then deploys the tracked config under `configs/` with GNU Stow.
 
+Running `install.sh` also updates the Pi CLI to the latest npm release when it is already installed.
+
 ## Install
 
 Remote bootstrap:
