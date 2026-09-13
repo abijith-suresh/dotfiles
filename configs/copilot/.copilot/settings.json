@@ -1,0 +1,10 @@
+{
+  "model": "gpt-5.3-codex",
+  "effortLevel": "medium",
+  "askUser": true,
+  "autoUpdate": true,
+  "respectGitignore": true,
+  "permissions": {
+    "disableBypassPermissionsMode": "disable"
+  }
+}
