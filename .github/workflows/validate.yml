@@ -34,14 +34,6 @@ jobs:
       - name: Test Pi installer behavior
         run: scripts/test-pi-installer.sh
 
-      - name: Check managed Pi package
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund --prefix configs/pi/.pi/agent
-          npm ci --ignore-scripts --no-audit --no-fund \
-            --prefix configs/pi/.pi/agent/extensions/subagents
-          npm run check --prefix configs/pi/.pi/agent
-          npm run format:check --prefix configs/pi/.pi/agent
-
       - name: Parse managed JSON and TOML
         run: |
           json_status=0

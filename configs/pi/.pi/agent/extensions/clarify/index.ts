@@ -31,7 +31,25 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { hasClarifyMarker, stripClarifyMarker } from "../../src/marker.ts";
+
+/** Whole-token marker so words like "pre-clarify" are ignored. */
+const CLARIFY_MARKER_RE = /(?:^|\s)-clarify(?=\s|$|[.,;:!?…])/gi;
+
+function hasClarifyMarker(text: string): boolean {
+  const trimmed = String(text ?? "").trim();
+  if (trimmed === "-clarify") return true;
+  CLARIFY_MARKER_RE.lastIndex = 0;
+  return CLARIFY_MARKER_RE.test(String(text ?? ""));
+}
+
+/** Remove every -clarify marker and return the remaining prompt text. */
+function stripClarifyMarker(text: string): string {
+  return String(text ?? "")
+    .replace(CLARIFY_MARKER_RE, " ")
+    .replace(/\s+([.,;:!?…])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 const USAGE =
   "Usage: /clarify <idea> | /clarify | /clarify model [provider model|reset] | add -clarify anywhere in the message";

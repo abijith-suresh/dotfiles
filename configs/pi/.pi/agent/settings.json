@@ -1,7 +1,8 @@
 {
-  "lastChangelogVersion": "0.78.1",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
+  "lastChangelogVersion": "0.85.1",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "xhigh",
-  "hideThinkingBlock": false
+  "hideThinkingBlock": false,
+  "theme": "catppuccin-mocha"
 }
