@@ -38,6 +38,7 @@ When behavior changes, update the matching truth document in the same change.
 - `install/apps/agents/` contains coding-agent installers.
 - `install/languages/` contains `mise` runtime and editor-tooling installers.
 - `install/stow.sh` owns config deployment and conflict backup behavior.
+- `configs/antigravity/` contains Antigravity CLI review and permission policies under `.gemini/antigravity-cli/settings.json`.
 - `configs/pi/.pi/agent/` contains Pi's managed settings, extensions, skills,
   themes, and locked npm manifests. `pi-setup.sh` installs dependencies after
   Stow; `pi.sh` installs or updates the latest Pi CLI package through npm;
@@ -51,6 +52,7 @@ Script execution order is defined in `install.sh` arrays. Do not rely on filenam
 Before changing installer commands for external tools, verify current official or canonical docs. Add or update a short source-policy comment in the affected script.
 
 For OpenAI Codex behavior or config, use official OpenAI Codex docs/manual as the source of truth.
+For Antigravity CLI behavior or config, use official Antigravity CLI docs as the source of truth.
 
 ## Stow Rules
 
