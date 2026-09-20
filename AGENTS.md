@@ -39,7 +39,7 @@ When behavior changes, update the matching truth document in the same change.
 - `install/languages/` contains `mise` runtime and editor-tooling installers.
 - `install/stow.sh` owns config deployment and conflict backup behavior.
 - `configs/pi/.pi/agent/` contains Pi's managed settings, native extensions
-  (`ask-user`, `clarify`), skills, and themes, with zero npm dependencies
+  (`ask-user`, `clarify`), and themes, with zero npm dependencies
   tracked in git and no subagent scheduler. `pi.sh` installs or updates the
   latest Pi CLI package through npm; authentication, sessions, logs, caches,
   and `node_modules` remain runtime state.
