@@ -30,7 +30,6 @@ CLI_APPS=(
   zoxide
 )
 AGENT_APPS=(antigravity claude codex copilot opencode pi)
-AGENT_SETUP_APPS=(pi-setup)
 LANGUAGES=(node bun java python go)
 
 run_phase() {
@@ -71,7 +70,5 @@ section "Configuration"
 # shellcheck disable=SC1090,SC1091
 source "$DOTFILES_DIR/install/stow.sh"
 stow_all
-
-run_phase "Agent package dependencies" "install/apps/agents" "tolerant" "${AGENT_SETUP_APPS[@]}"
 
 print_final_summary

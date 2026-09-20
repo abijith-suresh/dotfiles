@@ -8,6 +8,8 @@ Thumbs.db
 
 # Runtime / cache files inside tracked config trees
 **/node_modules/
+configs/pi/.pi/agent/node_modules/
+configs/pi/.pi/agent/clarify.json
 configs/tmux/.config/tmux/plugins/
 configs/zsh/.config/zsh/.zsh_history
 configs/zsh/.config/zsh/.zcompdump*

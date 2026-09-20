@@ -38,11 +38,11 @@ When behavior changes, update the matching truth document in the same change.
 - `install/apps/agents/` contains coding-agent installers.
 - `install/languages/` contains `mise` runtime and editor-tooling installers.
 - `install/stow.sh` owns config deployment and conflict backup behavior.
-- `configs/pi/.pi/agent/` contains Pi's managed settings, extensions, skills,
-  themes, and locked npm manifests. `pi-setup.sh` installs dependencies after
-  Stow; `pi.sh` installs or updates the latest Pi CLI package through npm;
-  authentication, sessions, logs, caches, and `node_modules` remain runtime
-  state.
+- `configs/pi/.pi/agent/` contains Pi's managed settings, native extensions
+  (`ask-user`, `clarify`), skills, and themes, with zero npm dependencies
+  tracked in git and no subagent scheduler. `pi.sh` installs or updates the
+  latest Pi CLI package through npm; authentication, sessions, logs, caches,
+  and `node_modules` remain runtime state.
 
 Script execution order is defined in `install.sh` arrays. Do not rely on filename sorting.
 
