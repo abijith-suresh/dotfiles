@@ -8,6 +8,12 @@ Running `install.sh` also updates the Pi CLI to the latest npm release when it i
 
 OpenCode installs from the official v2 release channel. An existing v1 install is migrated in place; a v2 install is left alone.
 
+`~/.pi/agent/settings.json` and `~/.codex/config.toml` are seeded once from `*.template` files instead of being symlinked, because Pi and Codex write their own state into them. Seeding never overwrites an existing live file; after changing a template, apply it explicitly:
+
+```bash
+~/.dotfiles/install.sh --refresh-runtime
+```
+
 ## Install
 
 Remote bootstrap:

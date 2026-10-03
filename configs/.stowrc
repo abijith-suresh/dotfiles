@@ -10,6 +10,7 @@
 --ignore=.*\.local
 --ignore=\.backup$
 --ignore=\.backup\.
+--ignore=\.template$
 --ignore=auth\.json
 --ignore=sessions
 --ignore=logs

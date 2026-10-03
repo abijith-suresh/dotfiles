@@ -39,7 +39,7 @@ package_entries() {
     find . -mindepth 1 \
       \( -path './.git' -o -path './.git/*' \) -prune -o \
       \( -name '.DS_Store' -o -name '.gitignore' -o -name '.zcompdump*' -o -name '.zsh_history' \) -prune -o \
-      \( -name '*.zwc' -o -name '*.zwc.old' -o -name '*.local' -o -name '*.backup' -o -name '*.backup.*' -o -name 'auth.json' \) -prune -o \
+      \( -name '*.zwc' -o -name '*.zwc.old' -o -name '*.local' -o -name '*.template' -o -name '*.backup' -o -name '*.backup.*' -o -name 'auth.json' \) -prune -o \
       \( -name 'sessions' -o -name 'logs' -o -name 'statsig' -o -name 'cache' \) -prune -o \
       \( -name 'node_modules' \) -prune -o \
       \( -type f -o -type l \) -print

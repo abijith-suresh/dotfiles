@@ -7,6 +7,15 @@ export DOTFILES_DIR
 # shellcheck disable=SC1090,SC1091
 source "$DOTFILES_DIR/install/lib.sh"
 
+REFRESH_RUNTIME=false
+for arg in "$@"; do
+  case "$arg" in
+    --refresh-runtime) REFRESH_RUNTIME=true ;;
+    *) die "unknown argument: $arg (only --refresh-runtime is supported)" ;;
+  esac
+done
+export REFRESH_RUNTIME
+
 FOUNDATION_APPS=(mise zsh git)
 CLI_APPS=(
   bat
@@ -71,6 +80,11 @@ section "Configuration"
 # shellcheck disable=SC1090,SC1091
 source "$DOTFILES_DIR/install/stow.sh"
 stow_all
+
+section "Runtime config"
+# shellcheck disable=SC1090,SC1091
+source "$DOTFILES_DIR/install/runtime.sh"
+seed_runtime_config
 
 run_phase "Agent package dependencies" "install/apps/agents" "tolerant" "${AGENT_SETUP_APPS[@]}"
 

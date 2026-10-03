@@ -15,6 +15,19 @@ Personal GNU Stow dotfiles for WSL Ubuntu, Ubuntu, and Debian. Keep setup direct
 5. External installer changes must reference official documentation in a script comment.
 6. Never pin a default model, provider, or default model arguments in checked-in config. Model catalogues churn constantly and pinning them forces a dotfiles change per release.
 
+## Runtime State
+
+Some agent CLIs persist their own state into their config file. Stowing those as symlinks writes agent state into this working tree and lets the live file silently diverge from the tracked copy. They are therefore tracked as `*.template`, excluded from Stow by `configs/.stowrc`, and copied once by `install/runtime.sh`:
+
+| Template | Live path |
+|---|---|
+| `configs/pi/.pi/agent/settings.json.template` | `~/.pi/agent/settings.json` |
+| `configs/codex/.codex/config.toml.template` | `~/.codex/config.toml` |
+
+Seeding never overwrites an existing live file. After changing a template, run `install.sh --refresh-runtime` to replace the live file, keeping a `.backup`.
+
+Keep this list minimal. Add a file here only when the owning tool is shown to write to it.
+
 ## Verification
 Always execute repository validation before submitting changes:
 ```bash
