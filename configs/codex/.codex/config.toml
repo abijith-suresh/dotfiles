@@ -1,8 +1,9 @@
 # Source: OpenAI Codex config basics, checked 2026-06-12.
 # User-level config is read from ~/.codex/config.toml.
+#
+# Universal defaults only. Model selection, model arguments, and project trust
+# levels are deliberately absent: see AGENTS.md invariant 6.
 
-model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
 personality = "pragmatic"
 web_search = "cached"
 approvals_reviewer = "user"
@@ -13,54 +14,9 @@ sandbox_mode = "workspace-write"
 multi_agent = true
 shell_snapshot = true
 
-[projects."/home/abijith/Code/projects/abijith.sh"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/projects"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/tools/outpost"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/skills"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/projects/minions"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/unwrapped"]
-trust_level = "trusted"
-
-[projects."/home/abijith/.dotfiles"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/interleaf"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/snapserve"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/tangent"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/planview"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/abijith.sh"]
-trust_level = "trusted"
-
-[projects."/home/abijith/Code/tailory"]
-trust_level = "trusted"
-
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "git-branch", "pull-request-number", "permissions", "context-used"]
 status_line_use_colors = true
-
-[apps.connector_76869538009648d5b282a4bb21c3d157.tools.github_create_pull_request]
-approval_mode = "approve"
-
-[apps.connector_76869538009648d5b282a4bb21c3d157.tools.github_add_issue_assignees]
-approval_mode = "approve"
 
 [notice]
 hide_rate_limit_model_nudge = true
