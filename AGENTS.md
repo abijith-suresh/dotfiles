@@ -13,6 +13,7 @@ Personal GNU Stow dotfiles for WSL Ubuntu, Ubuntu, and Debian. Keep setup direct
 3. Every package in `configs/<name>` must be registered in `STOW_PACKAGES` in `install/stow.sh` and deploy cleanly via `stow --no-folding`.
 4. Theme is Catppuccin Mocha everywhere. Keep palette definitions direct in configs.
 5. External installer changes must reference official documentation in a script comment.
+6. Never pin a default model, provider, or default model arguments in checked-in config. Model catalogues churn constantly and pinning them forces a dotfiles change per release.
 
 ## Verification
 Always execute repository validation before submitting changes:

@@ -1,7 +1,5 @@
 {
-  "lastChangelogVersion": "0.78.1",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
+  "theme": "catppuccin-mocha",
   "defaultThinkingLevel": "xhigh",
   "hideThinkingBlock": false
 }
