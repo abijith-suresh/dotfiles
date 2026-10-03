@@ -71,6 +71,9 @@ fi
 
 git -C "$DOTFILES_DIR" fetch origin "$DOTFILES_REF"
 git -C "$DOTFILES_DIR" checkout "$DOTFILES_REF"
-git -C "$DOTFILES_DIR" pull --ff-only origin "$DOTFILES_REF"
+# Keep dirty configs active and stop on conflicts, even with global autostash.
+# https://git-scm.com/docs/git-pull
+git -C "$DOTFILES_DIR" -c rebase.autoStash=false -c merge.autoStash=false \
+  pull --ff-only --no-rebase origin "$DOTFILES_REF"
 
 exec "$DOTFILES_DIR/install.sh"

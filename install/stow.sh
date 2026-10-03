@@ -39,7 +39,7 @@ package_entries() {
     find . -mindepth 1 \
       \( -path './.git' -o -path './.git/*' \) -prune -o \
       \( -name '.DS_Store' -o -name '.gitignore' -o -name '.zcompdump*' -o -name '.zsh_history' \) -prune -o \
-      \( -name '*.zwc' -o -name '*.zwc.old' -o -name '*.local' -o -name '*.template' -o -name '*.backup' -o -name '*.backup.*' -o -name 'auth.json' \) -prune -o \
+      \( -name '*.zwc' -o -name '*.zwc.old' -o -name '*.local' -o -name '*.backup' -o -name '*.backup.*' -o -name 'auth.json' \) -prune -o \
       \( -name 'sessions' -o -name 'logs' -o -name 'statsig' -o -name 'cache' \) -prune -o \
       \( -name 'node_modules' \) -prune -o \
       \( -type f -o -type l \) -print
@@ -138,6 +138,7 @@ backup_entry_conflict() {
 
 backup_blocking_parent_dirs() {
   local package="$1"
+  local keep="${2:-}"
   local package_dir="$DOTFILES_DIR/configs/$package"
   local rel source target
 
@@ -145,6 +146,11 @@ backup_blocking_parent_dirs() {
     rel="${rel#./}"
     source="$package_dir/$rel"
     target="$HOME/$rel"
+    # Never move a parent containing settings we promised to preserve.
+    if [[ -n "$keep" && "$keep" == "$rel/"* ]] &&
+      { [ -L "$target" ] || { [ -e "$target" ] && [ ! -d "$target" ]; }; }; then
+      die "Keeping existing ~/$keep; cannot stow through $target. Resolve this parent conflict manually."
+    fi
     if [ -L "$target" ] && ! path_resolves_to_source "$target" "$source"; then
       backup_unmanaged_target "$target" "$source"
     elif [ -e "$target" ] && [ ! -d "$target" ]; then
@@ -155,15 +161,17 @@ backup_blocking_parent_dirs() {
 
 backup_package_conflicts() {
   local package="$1"
+  local keep="${2:-}"
   local package_dir="$DOTFILES_DIR/configs/$package"
   local rel source target
 
   [ -d "$package_dir" ] || die "Missing Stow package: $package"
 
-  backup_blocking_parent_dirs "$package"
+  backup_blocking_parent_dirs "$package" "$keep"
 
   while IFS= read -r rel; do
     rel="${rel#./}"
+    [ "$rel" != "$keep" ] || continue
     source="$package_dir/$rel"
     target="$HOME/$rel"
     backup_entry_conflict "$target" "$source"
@@ -172,15 +180,29 @@ backup_package_conflicts() {
 
 stow_package() {
   local package="$1"
-  backup_package_conflicts "$package"
-  if ! (
-    cd "$DOTFILES_DIR/configs"
-    stow --dir "$DOTFILES_DIR/configs" --target "$HOME" --stow --no-folding "$package"
-  ); then
-    warn "Stow reported a conflict for $package; retrying after backup scan"
-    backup_package_conflicts "$package"
-    stow --dir "$DOTFILES_DIR/configs" --target "$HOME" --stow --no-folding "$package"
+  local settings="" keep="" pattern
+  local stow_options=(--stow --no-folding)
+
+  # Both CLIs can replace their settings symlink with an owned file. Keep
+  # existing settings active, including trust and other state written by them.
+  case "$package" in
+    codex) settings=".codex/config.toml" ;;
+    pi) settings=".pi/agent/settings.json" ;;
+  esac
+  if [ -n "$settings" ] && { [ -e "$HOME/$settings" ] || [ -L "$HOME/$settings" ]; } &&
+    ! path_resolves_to_source "$HOME/$settings" "$DOTFILES_DIR/configs/$package/$settings"; then
+    keep="$settings"
+    pattern="${settings##*/}"
+    pattern="${pattern//./\\.}"
+    stow_options+=("--ignore=(^|/)$pattern\$")
+    info "Keeping existing ~/$settings"
   fi
+
+  backup_package_conflicts "$package" "$keep"
+  (
+    cd "$DOTFILES_DIR/configs"
+    stow --dir "$DOTFILES_DIR/configs" --target "$HOME" "${stow_options[@]}" "$package"
+  )
 }
 
 stow_all() {

@@ -4,6 +4,10 @@
 # Organized, documented, and optimized for performance & usability.
 # ============================
 
+# A home rc may source this file again. Stop that loop while loading.
+[[ ${_DOTFILES_ZSHRC_LOADING:-} == 1 ]] && return
+typeset -g _DOTFILES_ZSHRC_LOADING=1
+
 # --- Environment Variables ---
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
@@ -73,6 +77,13 @@ done
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
+# Third-party installers often append to ~/.zshrc. Read an existing regular
+# file while keeping it out of Stow and avoiding same-file or recursive reads.
+if [[ -f "$HOME/.zshrc" && -r "$HOME/.zshrc" && ! -L "$HOME/.zshrc" &&
+      ! "$HOME/.zshrc" -ef "$ZDOTDIR/.zshrc" ]]; then
+  source "$HOME/.zshrc"
+fi
+
 # zsh-syntax-highlighting must be sourced at the end of .zshrc.
 if [[ -t 0 && -t 1 && -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
   source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
@@ -82,3 +93,5 @@ fi
 if [[ -r "$ZDOTDIR/.zshrc.local" ]]; then
   source "$ZDOTDIR/.zshrc.local"
 fi
+
+unset _DOTFILES_ZSHRC_LOADING
