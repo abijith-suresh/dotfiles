@@ -34,7 +34,6 @@ CLI_APPS=(
   zoxide
 )
 AGENT_APPS=(antigravity claude codex copilot opencode pi)
-AGENT_SETUP_APPS=(pi-setup)
 LANGUAGES=(node bun java python go)
 
 run_phase() {
@@ -76,6 +75,7 @@ section "Configuration"
 source "$DOTFILES_DIR/install/stow.sh"
 stow_all
 
-run_phase "Agent package dependencies" "install/apps/agents" "tolerant" "${AGENT_SETUP_APPS[@]}"
+section "Agent package dependencies"
+run_tolerant_script "pi-setup" "$DOTFILES_DIR/install/apps/agents/pi-setup.sh"
 
 print_final_summary
