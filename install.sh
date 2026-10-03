@@ -26,6 +26,7 @@ CLI_APPS=(
   shellcheck
   shfmt
   starship
+  t3-code
   tmux
   vim
   zellij
