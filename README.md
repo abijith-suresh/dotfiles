@@ -4,7 +4,7 @@ Personal, opinionated terminal setup for my machines.
 
 This repo exists to make a fresh machine feel like mine quickly. It installs the tools I use, then deploys the tracked config under `configs/` with GNU Stow.
 
-Running `install.sh` also updates the Pi CLI to the latest npm release when it is already installed.
+Running `install.sh` also updates Pi to the latest stable npm release. Its extensions share one lockfile and typecheck against that installed CLI. The [Pi subagent guide](configs/pi/.pi/agent/skills/subagents/SKILL.md) covers foreground and background tasks; `ask_user` accepts related questions together.
 
 OpenCode installs from the official v2 release channel. An existing v1 install is migrated in place; a v2 install is left alone.
 
