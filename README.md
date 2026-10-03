@@ -74,3 +74,4 @@ Repository guidance:
 
 - [AGENTS.md](AGENTS.md) has agent rules and repository invariants.
 - [CONTRIBUTING.md](CONTRIBUTING.md) describes the development workflow.
+- [docs/t3-code.md](docs/t3-code.md) describes the T3 Code setup.
