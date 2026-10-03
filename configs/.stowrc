@@ -8,6 +8,8 @@
 --ignore=.*\.zwc
 --ignore=.*\.zwc\.old
 --ignore=.*\.local
+--ignore=\.backup$
+--ignore=\.backup\.
 --ignore=auth\.json
 --ignore=sessions
 --ignore=logs
