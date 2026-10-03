@@ -9,13 +9,14 @@
 
 ```bash
 scripts/validate.sh
+scripts/test-stow.sh
 ```
 
 ## Validation
 
-The GitHub Actions workflow also runs scripts/test-stow.sh in a temporary
-home. That test checks a clean deployment, a repeated deployment, and backup
-behavior when an unmanaged config conflicts with a managed target.
+Run checks locally. There is no GitHub Actions workflow. `scripts/test-stow.sh`
+uses temporary homes to check clean and repeated deployment, conflict backups,
+and preservation of existing Pi and Codex settings and auth files.
 
 `scripts/validate.sh` runs:
 
@@ -37,7 +38,7 @@ Shell scripts use:
 shfmt -i 2 -ci -w boot.sh install.sh install scripts
 ```
 
-## Adding A Tool
+## Adding a tool
 
 1. Add one script under `install/apps/cli/`, `install/apps/agents/`, or `install/languages/`.
 2. Add it to the explicit list in `install.sh`.
@@ -46,7 +47,7 @@ shfmt -i 2 -ci -w boot.sh install.sh install scripts
 5. Document the install source policy in the script using official/canonical docs.
 6. Update `AGENTS.md` if repository constraints or managed-tool behavior changes.
 
-## Removing A Tool
+## Removing a tool
 
 1. Remove its installer script.
 2. Remove it from `install.sh`.

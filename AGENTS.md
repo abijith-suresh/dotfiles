@@ -15,18 +15,20 @@ Personal GNU Stow dotfiles for WSL Ubuntu, Ubuntu, and Debian. Keep setup direct
 5. External installer changes must reference official documentation in a script comment.
 6. Never pin a default model, provider, or default model arguments in checked-in config. Model catalogues churn constantly and pinning them forces a dotfiles change per release.
 
-## Runtime State
+## Runtime state
 
-Some agent CLIs persist their own state into their config file. Stowing those as symlinks writes agent state into this working tree and lets the live file silently diverge from the tracked copy. They are therefore tracked as `*.template`, excluded from Stow by `configs/.stowrc`, and copied once by `install/runtime.sh`:
+Pi and Codex settings use their native paths and are stowed directly on fresh installs:
 
-| Template | Live path |
+| Configuration | Live path |
 |---|---|
-| `configs/pi/.pi/agent/settings.json.template` | `~/.pi/agent/settings.json` |
-| `configs/codex/.codex/config.toml.template` | `~/.codex/config.toml` |
+| `configs/pi/.pi/agent/settings.json` | `~/.pi/agent/settings.json` |
+| `configs/codex/.codex/config.toml` | `~/.codex/config.toml` |
 
-Seeding never overwrites an existing live file. After changing a template, run `install.sh --refresh-runtime` to replace the live file, keeping a `.backup`.
+Tool writes through these symlinks may dirty the checkout. Review those changes and never commit credentials, model defaults, runtime state, or project trust. Stow excludes auth files, sessions, logs, caches, and backups.
 
-Keep this list minimal. Add a file here only when the owning tool is shown to write to it.
+If either settings path already exists and does not resolve to its tracked source, the installer keeps it active and reports it. Other files in that package still deploy. This preserves owned settings and trust when a CLI replaces its symlink. A blocking parent symlink fails deployment without moving those settings. Do not add a seeding, refresh, merge, or migration layer.
+
+Keep agent state in native directories. Use XDG paths for tools that already support them, without requiring credential moves. Fresh installs must not configure MCP servers. Railway installation is CLI-only.
 
 ## Verification
 Always execute repository validation before submitting changes:
