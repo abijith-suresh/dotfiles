@@ -10,9 +10,9 @@
       "command(git clean -fd)",
       "command(git push --force)",
       "write_file(.git/)",
-      "read_file(/home/abijith/.ssh)",
-      "read_file(/home/abijith/.gnupg)",
-      "read_file(/home/abijith/.aws)"
+      "read_file(~/.ssh)",
+      "read_file(~/.gnupg)",
+      "read_file(~/.aws)"
     ]
   }
 }
