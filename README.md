@@ -6,6 +6,8 @@ This repo exists to make a fresh machine feel like mine quickly. It installs the
 
 Running `install.sh` also updates the Pi CLI to the latest npm release when it is already installed.
 
+OpenCode installs from the official v2 release channel. An existing v1 install is migrated in place; a v2 install is left alone.
+
 ## Install
 
 Remote bootstrap:
