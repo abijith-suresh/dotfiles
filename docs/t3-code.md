@@ -46,31 +46,9 @@ server's `PATH`, or set its Binary path in provider settings. See the
 [upstream provider instructions](https://github.com/pingdotgg/t3code/blob/main/docs/user/install.md#providers).
 No provider or model is selected by these dotfiles.
 
-After bootstrap, open Settings > Appearance in the browser and import the
-Catppuccin Mocha JSON at `~/.config/t3/themes/catppuccin-mocha.json`. Select the
-imported theme. In WSL, print the Windows file-picker path with:
-
-```bash
-wslpath -w "$HOME/.config/t3/themes/catppuccin-mocha.json"
-```
-
-For an environment default instead, publish a regular copy and select it with:
-
-```bash
-t3 theme set "$(readlink -f "$HOME/.config/t3/themes/catppuccin-mocha.json")"
-```
-
-Run this in WSL or Linux. T3 copies the theme into its native themes directory
-and applies it to connected browsers, or when they next reconnect. Afterwards,
-`t3 theme set catppuccin-mocha` selects the published theme by ID. T3 rejects
-symlinked files in its native themes directory, so the stowed JSON is an import
-source. See the [official appearance guide](https://github.com/pingdotgg/t3code/blob/main/docs/user/appearance.md).
-Bootstrap does not import, select, or publish a theme.
-
 T3 owns `~/.t3`, including downloaded runtimes and `userdata` for settings,
-projects, threads, and authentication. Stow deploys only the theme source under
-`~/.config/t3/themes/`; native runtime state stays unstowed.
-Upstream supports `T3CODE_HOME` and `--base-dir` for an explicit location;
+projects, threads, and authentication. These dotfiles do not stow or relocate
+it. Upstream supports `T3CODE_HOME` and `--base-dir` for an explicit location;
 keep the same location for all `t3` commands to retain your state. XDG variables
 alone do not relocate it.
 
