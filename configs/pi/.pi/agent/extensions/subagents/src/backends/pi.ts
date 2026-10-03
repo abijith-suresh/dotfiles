@@ -1,15 +1,4 @@
-/**
- * pi backend — real implementation over the pi SDK.
- *
- * Each subagent is an in-process `AgentSession` (a port of v1
- * subagents/manager.ts + shared/child-session.ts):
- * - real session files visible in /resume, child resources loaded per-cwd
- *   with trust gating, and the child tool denylist;
- * - `session.subscribe()` events translated to normalized SubagentEvents;
- * - send() steers a streaming run or starts a fresh prompt() when idle;
- * - interrupt clears the queue and aborts; closing the session scope emits
- *   the child session_shutdown hook and disposes the session.
- */
+/** One headless Pi SDK session per task, with trust gating and no child delegation. */
 
 import type { AssistantMessage, Message, Model } from "@earendil-works/pi-ai";
 import type {
@@ -33,7 +22,7 @@ import type {
   SubagentMeta,
   TranscriptPart,
 } from "../domain.ts";
-import { SendError, SpawnError } from "../domain.ts";
+import { SpawnError } from "../domain.ts";
 import { createToolCallTimeoutGuard } from "../tool-call-timeout.ts";
 
 const CHILD_SHUTDOWN_TIMEOUT_MS = 5_000;
@@ -56,7 +45,7 @@ type ThinkingLevel = NonNullable<
 >;
 
 /**
- * Resolve the generic model hint against the parent registry (v1 semantics):
+ * Resolve the generic model hint against the parent registry:
  * "provider/model-id" is exact; a bare id prefers the inherited provider,
  * then must be unambiguous across providers. No hint inherits the parent
  * model; with nothing to inherit, the SDK default applies.
@@ -92,7 +81,7 @@ function resolvePiModel(
   throw new Error(`Unknown model "${hint}".`);
 }
 
-// --- Child session helpers (ported from v1 shared/child-session.ts) -----------
+// --- Child session lifecycle -----------------------------------------------
 
 /** Load normal global/package resources and trust-gated project resources. */
 async function createChildResources(cwd: string, projectTrusted: boolean) {
@@ -166,7 +155,7 @@ function lastAssistantMessage(
   return undefined;
 }
 
-/** Final assistant text output (last assistant message with text), v1 semantics. */
+/** Final assistant text output (last assistant message with text). */
 function finalOutput(session: AgentSession): string {
   const messages = session.messages;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -191,7 +180,7 @@ function safeJson(value: unknown): string | undefined {
   }
 }
 
-/** First non-empty line of a tool result-ish value (v1 liveToolPreview). */
+/** First non-empty line of a tool result. */
 function toolPreview(value: unknown): string | undefined {
   if (typeof value === "string") {
     return value
@@ -280,7 +269,7 @@ const makePiSession = (
       task.parent.inheritedThinkingLevel) as ThinkingLevel | undefined;
 
     const session = yield* Effect.tryPromise({
-      try: async () => {
+      try: async (signal) => {
         const { loader, settingsManager } = await createChildResources(
           task.cwd,
           task.parent.projectTrusted,
@@ -299,6 +288,7 @@ const makePiSession = (
         // the scope finalizer that owns cleanup is only registered later.
         try {
           await session.bindExtensions({ mode: "print" });
+          if (signal.aborted) throw new Error("Subagent spawn aborted.");
         } catch (error) {
           await shutdownAndDisposeChildSession(session);
           throw error;
@@ -499,7 +489,7 @@ const makePiSession = (
       }),
     );
 
-    /** Start a fresh run (v1 manager.run): fire-and-forget, errors -> events. */
+    /** Start the task without blocking spawn; errors become terminal events. */
     const startRun = (text: string) => {
       state.runError = undefined;
       state.settled = false;
@@ -525,22 +515,6 @@ const makePiSession = (
     return {
       meta: Effect.sync(currentMeta),
       events: Stream.fromQueue(events),
-      send: (text) =>
-        Effect.suspend((): Effect.Effect<void, SendError> => {
-          if (state.closed) {
-            return new SendError({ message: "Subagent session is closed." });
-          }
-          if (session.isStreaming) {
-            // Steer the active run via the SDK's queue; queue_update events
-            // render it, message_end(user) lands it in the transcript. A
-            // rejected steer is a real send failure, not a diagnostic.
-            return Effect.tryPromise({
-              try: () => session.steer(text),
-              catch: (error) => new SendError({ message: boundedError(error) }),
-            }).pipe(Effect.asVoid);
-          }
-          return Effect.sync(() => startRun(text));
-        }),
       interrupt: Effect.promise(async () => {
         if (state.closed) return;
         try {
@@ -553,9 +527,7 @@ const makePiSession = (
         // interrupt as complete while the run keeps working would let the
         // manager settle a run that is still mutating the workspace. The
         // manager bounds this effect at 5s and force-disposes on timeout.
-        while (!state.closed && session.isStreaming) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        }
+        await session.waitForIdle();
         // No streaming run means no agent_settled will arrive; emit the
         // terminal event (once) so the run cannot look running forever.
         if (!state.closed && !state.settled) {
@@ -568,7 +540,6 @@ const makePiSession = (
 
 export const piBackend: SubagentBackend = {
   name: "pi",
-  capabilities: { steering: true, modelSelection: true, reasoningEffort: true },
   // In-process SDK: always available.
   available: Effect.succeed(true),
   spawn: makePiSession,

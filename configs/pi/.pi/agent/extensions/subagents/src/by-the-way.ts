@@ -2,7 +2,7 @@ import type { SubagentOrigin } from "./domain.ts";
 
 export const BTW_TITLE_MAX_LENGTH = 60;
 
-/** Build a compact dashboard title from the first non-empty prompt line. */
+/** Build a compact task title from the first non-empty prompt line. */
 export function deriveBtwTitle(prompt: string) {
   const firstLine = prompt
     .split("\n")
@@ -15,7 +15,7 @@ export function deriveBtwTitle(prompt: string) {
   return `${codePoints.slice(0, BTW_TITLE_MAX_LENGTH - 1).join("")}…`;
 }
 
-/** User asides remain visible in the dashboard but hidden from model tools. */
+/** User asides remain visible in result entries but hidden from model tools. */
 export function isModelVisible(snap: { readonly origin: SubagentOrigin }) {
   return snap.origin === "model";
 }

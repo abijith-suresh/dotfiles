@@ -2,23 +2,24 @@
 
 /** Describes subagent_spawn, including the concurrency cap. */
 export const SUBAGENT_SPAWN_TOOL_DESCRIPTION =
-  "Spawn a background subagent: a fully autonomous, headless agent with its own context window and normal pi tools. Each subagent is an in-process pi session that inherits this environment's tools and config. Fire-and-forget: this returns immediately with an id. The subagent's final output is queued back to you as a message when it settles, or collect it explicitly with subagent_wait. Children cannot orchestrate more agents or ask the user, and cannot see this conversation, so the prompt must be self-contained. Only use trusted working directories. Max 4 subagents can be running at once.";
+  "Spawn a foreground or background subagent: a fully autonomous, headless agent with its own context window and normal pi tools. Each subagent is an in-process pi session that inherits this environment's tools and config. Background mode returns immediately with an id; foreground mode waits and returns the task result. The subagent's final output is queued back to you as a message when it settles, or collect it explicitly with subagent_wait. Children cannot orchestrate more agents or ask the user, and cannot see this conversation, so the prompt must be self-contained. Only use trusted working directories. Max 4 subagents can be running at once.";
 
 /** Adds background subagent delegation to the parent model's available-tools prompt. */
 export const SUBAGENT_SPAWN_PROMPT_SNIPPET =
-  "Spawn a background subagent (in-process pi session, own context, normal tools) for a self-contained task";
+  "Spawn a background subagent (in-process pi session, own context, normal tools) for a self-contained task, optionally waiting in foreground mode";
 
 /** Guides the parent model to delegate standalone tasks and avoid unnecessary blocking waits. */
 export const SUBAGENT_SPAWN_PROMPT_GUIDELINES = [
   "Use subagent_spawn to delegate self-contained tasks that can run in the background; give it a complete, standalone prompt.",
-  "After subagent_spawn, keep working; results arrive automatically. Only call subagent_wait when you cannot proceed without the result.",
+  "Do not spawn an identical task twice or poll idle status. Use foreground mode when the task is required immediately.",
+  "After a background subagent_spawn, keep working; results arrive automatically. Only call subagent_wait when you cannot proceed without the result.",
 ];
 
 /** Model-facing schema descriptions for subagent_spawn task and execution options. */
 export const SUBAGENT_SPAWN_PARAMETER_DESCRIPTIONS = {
   prompt:
     "Task prompt for the subagent. Must be self-contained: include all needed context, file paths, and what to report back.",
-  name: "Short human-readable name for this subagent, shown in listings and the UI",
+  name: "Short human-readable name for this subagent, shown in status and result messages",
   workingDir:
     "Trusted working directory for the autonomous child (default: current working directory)",
   model:

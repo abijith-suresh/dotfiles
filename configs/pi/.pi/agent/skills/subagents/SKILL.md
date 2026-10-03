@@ -1,30 +1,30 @@
 ---
 name: subagents
-description: invoke this skill when the user asks you to use subagents
+description: Use Pi subagents when the user asks for delegated or parallel tasks.
 ---
 
 # Subagents
 
-Each subagent is headless, has its own context window, cannot see the parent conversation, cannot ask the user, and cannot spawn further subagents. Give every child a self-contained prompt with paths, constraints, and the expected report.
+Each child is a one-shot, headless Pi SDK session with its own context. It cannot see the parent conversation, ask the user or spawn more subagents. Give it a complete prompt with paths, constraints and the expected report. At most four children run at once. Identical active tasks are rejected, including concurrent spawn requests.
 
-## Pi Harness (Default)
+Call `subagent_spawn` with `prompt`, `name` and an optional `mode`:
 
-**Harness:** `pi`
-**Prompt nicknames:** "pi", "pi agent", "pi subagent"
-**Best default:** Inherits the parent model and thinking level when `model` or `reasoning_effort` is omitted.
+- `background`, the default, returns an id once the child session starts. Keep doing useful parent work. Its result arrives automatically when the parent settles, or immediately if the parent is already idle.
+- `foreground` waits and returns the result in the same call. Use this when the parent cannot proceed without the child's work.
 
-Pi can use any model shown by `pi --list-models`. Prefer `provider/model-id`; a bare model id only works when unambiguous.
+Optional `working_dir` selects the child's directory. Same-directory children inherit the parent's project trust decision. Other directories load project resources only if Pi's trust store trusts them. Optional `model` accepts `provider/model-id` or an unambiguous model id. Omit it and `reasoning_effort` to inherit the parent model and thinking level.
 
-**Reasoning efforts:** `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. These map directly to pi thinking levels.
+Use these tools when needed:
 
-## Spawn and Manage
+- `subagent_wait({ ids })` collects results together. Successful collection suppresses pending automatic delivery. Aborting a wait leaves the children running and restores automatic delivery, including results that settled during the wait.
+- `subagent_check({ id })` shows status and a bounded output preview.
+- `subagent_list()` lists tracked tasks.
+- `subagent_cancel({ ids })` aborts active work and reports cancellation. It does not also send an automatic completion message. Partial session transcripts remain on disk.
 
-Call `subagent_spawn` with a complete `prompt`, short `name`, and optional `working_dir`, `model`, and `reasoning_effort`. At most four subagents run concurrently.
+Do not repeatedly poll status or create duplicate tasks. Background errors also arrive automatically. Settled children release their SDK sessions, and shutting down the parent closes active children without sending late results. Background work needs a running parent process; it does not survive Pi exiting.
 
-- `subagent_check({ id })`: peek without blocking.
-- `subagent_list()`: list all runs.
-- `subagent_wait({ ids })`: block only when results are required to proceed.
-- `subagent_cancel({ ids })`: stop runs while preserving partial transcripts.
-- `/subagents`: inspect or take over a run interactively.
+There is no subagent dashboard, transcript viewer or takeover command. `/btw <question>` starts a user aside in the TUI and displays its answer as a session entry without adding it to the main model's context.
 
-Results return automatically. After spawning, continue useful parent work instead of immediately waiting.
+Dependencies stay under `~/.pi/agent/node_modules`. The setup installer links SDK types to the installed CLI and adds an ignored dependency link beside canonical Stow source files. Existing source dependencies are renamed to `node_modules.backup` or a numbered backup before linking. The same applies to dependencies left by the removed nested subagents package. The installer prints each backup location and keeps its contents. The single package lock pins external libraries, not Pi. Rerun `install.sh` after upgrading Pi to synchronize the links and typecheck extensions. No credentials or existing sessions move.
+
+For local verification, use an isolated HOME and runtime prefix. Run `npm run check` and `npm test` from the temporary agent directory. `PI_TEST_RUNTIME=/absolute/path/to/installed/pi-coding-agent scripts/test-pi-installer.sh` also checks the real Stow layout, repeated setup and Pi resource loading without model calls.

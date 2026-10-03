@@ -1,7 +1,7 @@
 /**
  * Domain model for subagents.
  *
- * Everything downstream of the pi backend (manager, tools, UI) speaks only these
+ * Everything downstream of the pi backend (manager and tools) speaks only these
  * types. The pi backend translates its native session events into the normalized
  * `SubagentEvent` union.
  */
@@ -62,7 +62,7 @@ export interface SpawnTask {
 
 export interface SubagentMeta {
   readonly backend: BackendName;
-  /** Display label, e.g. "opencode-go/deepseek-v4-flash". */
+  /** Active provider/model label. */
   readonly modelLabel?: string;
   /** Context window capacity for utilization display, when known. */
   readonly contextWindow?: number;
@@ -127,12 +127,10 @@ export type RunOutcome =
 
 /**
  * Normalized activity stream. Previews (`argsPreview`, `outputPreview`) are
- * pre-flattened single-line strings because the UI only ever renders one
- * sanitized line, which keeps three different native tool-result shapes out
- * of the interface.
+ * bounded strings for nonblocking status previews.
  */
 export type SubagentEvent =
-  // lifecycle (a session can run multiple turns via send())
+  // lifecycle (one task per session)
   | { readonly _tag: "RunStarted" }
   | { readonly _tag: "RunSettled"; readonly outcome: RunOutcome }
   // transcript building blocks
@@ -182,7 +180,7 @@ export type SubagentEvent =
 
 /**
  * The manager folds `SubagentEvent`s into one snapshot per subagent. This is
- * everything the tools, footer status, and both TUI views read.
+ * everything the status and result tools read.
  */
 export interface SubagentSnapshot {
   readonly id: string;
@@ -202,13 +200,13 @@ export interface SubagentSnapshot {
   readonly liveAssistant?: { readonly text: string; readonly thinking: string };
   readonly liveTools: ReadonlyArray<LiveToolState>;
   readonly queued: ReadonlyArray<QueuedMessage>;
-  /** Final text of the most recent completed run (v1 `finalOutput`). */
+  /** Final text of the most recent completed run . */
   readonly finalText: string;
   /** Count of finalized assistant messages (for subagent_check). */
   readonly turns: number;
 }
 
-/** Final text, or the live streaming buffer while a run is active (v1 `latestOutput`). */
+/** Final text, or the live streaming buffer while a run is active . */
 export function latestText(snap: SubagentSnapshot) {
   const live = snap.liveAssistant?.text.trim();
   if (live) return live;
@@ -240,9 +238,5 @@ export class BackendUnavailableError extends Data.TaggedError(
 export class ConcurrencyLimitError extends Data.TaggedError(
   "ConcurrencyLimitError",
 )<{
-  readonly message: string;
-}> {}
-
-export class SendError extends Data.TaggedError("SendError")<{
   readonly message: string;
 }> {}
