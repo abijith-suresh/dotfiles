@@ -1,128 +1,50 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   Editor,
-  type EditorTheme,
   Key,
   matchesKey,
-  parseKey,
   Text,
   truncateToWidth,
-  visibleWidth,
   wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 import {
-  ASK_USER_PARAMETER_DESCRIPTIONS,
   ASK_USER_PROMPT_GUIDELINES,
   ASK_USER_PROMPT_SNIPPET,
   ASK_USER_TOOL_DESCRIPTION,
-  buildAskUserResultMessage,
 } from "./prompt.ts";
 
-const MIN_OPTIONS = 2;
-const MAX_OPTIONS = 5;
-const WRITE_OWN_ANSWER_LABEL = "Write my own answer";
-
-const OptionSchema = Type.Object({
-  label: Type.String({
-    description: ASK_USER_PARAMETER_DESCRIPTIONS.optionLabel,
-  }),
-  description: Type.Optional(
-    Type.String({
-      description: ASK_USER_PARAMETER_DESCRIPTIONS.optionDescription,
-    }),
-  ),
+const Option = Type.Object({
+  label: Type.String({ minLength: 1 }),
+  description: Type.Optional(Type.String()),
 });
-
-const AskUserParams = Type.Object({
-  question: Type.String({
-    description: ASK_USER_PARAMETER_DESCRIPTIONS.question,
-  }),
-  options: Type.Array(OptionSchema, {
-    minItems: MIN_OPTIONS,
-    maxItems: MAX_OPTIONS,
-    description: ASK_USER_PARAMETER_DESCRIPTIONS.options,
-  }),
+const Question = Type.Object({
+  id: Type.String({ minLength: 1, description: "Unique answer key" }),
+  question: Type.String({ minLength: 1 }),
+  options: Type.Optional(Type.Array(Option, { minItems: 2, maxItems: 5 })),
 });
-
-type AskUserInput = Static<typeof AskUserParams>;
-type AskUserStatus =
-  "selected" | "custom" | "dismissed" | "cancelled" | "unavailable";
-
-interface AskUserDetails {
-  status: AskUserStatus;
+// Keep the old single-question arguments usable by existing callers.
+const Params = Type.Union([
+  Type.Object({
+    questions: Type.Array(Question, { minItems: 1, maxItems: 8 }),
+  }),
+  Type.Object({
+    question: Type.String({ minLength: 1 }),
+    options: Type.Optional(Type.Array(Option, { minItems: 2, maxItems: 5 })),
+  }),
+]);
+type QuestionInput = Static<typeof Question>;
+type Answer = {
+  id: string;
   question: string;
-  options: AskUserInput["options"];
-  answer: string | null;
+  answer: string;
   wasCustom: boolean;
-  cancelled: boolean;
   selectedIndex?: number;
-}
-
-interface DisplayOption {
-  label: string;
-  description?: string;
-  isCustom?: boolean;
-}
-
-type TuiSelection =
-  | { status: "selected"; answer: string; index: number }
-  | { status: "custom"; answer: string }
-  | { status: "dismissed" }
-  | { status: "cancelled" };
-
-function createDetails(
-  params: AskUserInput,
-  status: AskUserStatus,
-  answer: string | null,
-  selectedIndex?: number,
-) {
-  return {
-    status,
-    question: params.question,
-    options: params.options,
-    answer,
-    wasCustom: status === "custom",
-    cancelled: status === "cancelled",
-    selectedIndex,
-  };
-}
-
-function result(
-  params: AskUserInput,
-  status: AskUserStatus,
-  message: string,
-  answer: string | null = null,
-  selectedIndex?: number,
-) {
-  return {
-    content: [{ type: "text" as const, text: message }],
-    details: createDetails(params, status, answer, selectedIndex),
-  };
-}
-
-function renderWrappedWithPrefix(
-  lines: string[],
-  prefix: string,
-  text: string,
-  width: number,
-) {
-  const prefixWidth = visibleWidth(prefix);
-  if (prefixWidth >= width) {
-    lines.push(truncateToWidth(prefix + text, width));
-    return;
-  }
-
-  const wrapped = wrapTextWithAnsi(text, width - prefixWidth);
-  for (const [index, line] of wrapped.entries()) {
-    lines.push(`${index === 0 ? prefix : " ".repeat(prefixWidth)}${line}`);
-  }
-}
-
-function optionForDialog(option: DisplayOption, index: number) {
-  const description = option.description ? ` — ${option.description}` : "";
-  return `${index + 1}. ${option.label}${description}`;
-}
+};
+type Outcome =
+  | { status: "answered"; answers: Answer[] }
+  | { status: "cancelled" | "dismissed" | "unavailable"; answers: [] };
+const FREE_TEXT = "Write my own answer";
 
 export default function askUser(pi: ExtensionAPI) {
   pi.registerTool({
@@ -131,153 +53,104 @@ export default function askUser(pi: ExtensionAPI) {
     description: ASK_USER_TOOL_DESCRIPTION,
     promptSnippet: ASK_USER_PROMPT_SNIPPET,
     promptGuidelines: ASK_USER_PROMPT_GUIDELINES,
-    parameters: AskUserParams,
+    parameters: Params,
+    outputSchema: Type.Object({
+      status: Type.Union([
+        Type.Literal("answered"),
+        Type.Literal("cancelled"),
+        Type.Literal("dismissed"),
+        Type.Literal("unavailable"),
+      ]),
+      answers: Type.Array(
+        Type.Object({
+          id: Type.String(),
+          question: Type.String(),
+          answer: Type.String(),
+          wasCustom: Type.Boolean(),
+          selectedIndex: Type.Optional(Type.Number()),
+        }),
+      ),
+    }),
     executionMode: "sequential",
+    async execute(_id, params, signal, _update, ctx) {
+      const questions: QuestionInput[] =
+        "questions" in params
+          ? params.questions
+          : [
+              {
+                id: "answer",
+                question: params.question,
+                options: params.options,
+              },
+            ];
+      if (new Set(questions.map((q) => q.id)).size !== questions.length)
+        throw new Error("Question ids must be unique.");
 
-    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
-      if (
-        params.options.length < MIN_OPTIONS ||
-        params.options.length > MAX_OPTIONS
-      ) {
-        throw new Error(
-          `ask_user requires between ${MIN_OPTIONS} and ${MAX_OPTIONS} options (got ${params.options.length}).`,
-        );
-      }
+      const pack = (outcome: Outcome) => ({
+        content: [
+          {
+            type: "text" as const,
+            text:
+              outcome.status === "answered"
+                ? JSON.stringify(outcome)
+                : `ask_user ${outcome.status}. No answers submitted; do not assume answers.`,
+          },
+        ],
+        details: { ...outcome, questions },
+        structuredContent: outcome,
+      });
+      if (signal?.aborted) return pack({ status: "cancelled", answers: [] });
+      if (!ctx.hasUI) return pack({ status: "unavailable", answers: [] });
 
-      if (!ctx.hasUI) {
-        return result(
-          params,
-          "unavailable",
-          buildAskUserResultMessage({ kind: "unavailable" }),
-        );
-      }
-
-      if (signal?.aborted) {
-        return result(
-          params,
-          "cancelled",
-          buildAskUserResultMessage({ kind: "cancelled" }),
-        );
-      }
-
+      // RPC has native select/input dialogs but no custom component.
       if (ctx.mode === "rpc") {
-        const options: DisplayOption[] = [
-          ...params.options,
-          { label: WRITE_OWN_ANSWER_LABEL, isCustom: true },
-        ];
-        const choice = await ctx.ui.select(
-          params.question,
-          options.map(optionForDialog),
-          { signal },
-        );
-
-        if (signal?.aborted) {
-          return result(
-            params,
-            "cancelled",
-            buildAskUserResultMessage({ kind: "cancelled" }),
-          );
+        const answers: Answer[] = [];
+        for (const q of questions) {
+          const options = q.options ?? [];
+          const labels = [
+            ...options.map(
+              (o, i) =>
+                `${i + 1}. ${o.label}${o.description ? `: ${o.description}` : ""}`,
+            ),
+            FREE_TEXT,
+          ];
+          const choice = options.length
+            ? await ctx.ui.select(q.question, labels, { signal })
+            : FREE_TEXT;
+          if (signal?.aborted)
+            return pack({ status: "cancelled", answers: [] });
+          if (choice === undefined)
+            return pack({ status: "dismissed", answers: [] });
+          const index = labels.indexOf(choice);
+          if (index < 0) return pack({ status: "dismissed", answers: [] });
+          const custom = index === options.length;
+          const value = custom
+            ? await ctx.ui.input(q.question, "Type your answer", { signal })
+            : options[index]?.label;
+          if (signal?.aborted)
+            return pack({ status: "cancelled", answers: [] });
+          if (!value?.trim()) return pack({ status: "dismissed", answers: [] });
+          answers.push({
+            id: q.id,
+            question: q.question,
+            answer: value.trim(),
+            wasCustom: custom,
+            selectedIndex: custom ? undefined : index + 1,
+          });
         }
-        if (choice === undefined) {
-          return result(
-            params,
-            "dismissed",
-            buildAskUserResultMessage({ kind: "dismissed" }),
-          );
-        }
-
-        const choiceIndex = options.findIndex(
-          (option, index) => optionForDialog(option, index) === choice,
-        );
-        const selected = options[choiceIndex];
-        if (!selected) {
-          return result(
-            params,
-            "dismissed",
-            buildAskUserResultMessage({ kind: "dismissed" }),
-          );
-        }
-
-        if (selected.isCustom) {
-          const answer = await ctx.ui.input(
-            "Write your own answer",
-            "Type your answer...",
-            { signal },
-          );
-          if (signal?.aborted) {
-            return result(
-              params,
-              "cancelled",
-              buildAskUserResultMessage({ kind: "cancelled" }),
-            );
-          }
-          if (answer === undefined || answer.trim() === "") {
-            return result(
-              params,
-              "dismissed",
-              buildAskUserResultMessage({ kind: "dismissed" }),
-            );
-          }
-          const trimmedAnswer = answer.trim();
-          return result(
-            params,
-            "custom",
-            buildAskUserResultMessage({
-              kind: "custom",
-              answer: trimmedAnswer,
-            }),
-            trimmedAnswer,
-          );
-        }
-
-        return result(
-          params,
-          "selected",
-          buildAskUserResultMessage({
-            kind: "selected",
-            answer: selected.label,
-            index: choiceIndex + 1,
-          }),
-          selected.label,
-          choiceIndex + 1,
-        );
+        return pack({ status: "answered", answers });
       }
+      if (ctx.mode !== "tui")
+        return pack({ status: "unavailable", answers: [] });
 
-      if (ctx.mode !== "tui") {
-        return result(
-          params,
-          "unavailable",
-          buildAskUserResultMessage({ kind: "unavailable" }),
-        );
-      }
-
-      const options: DisplayOption[] = [
-        ...params.options,
-        { label: WRITE_OWN_ANSWER_LABEL, isCustom: true },
-      ];
-      const selection = await ctx.ui.custom<TuiSelection>(
-        (tui, theme, _keybindings, done) => {
+      const outcome = await ctx.ui.custom<Outcome>(
+        (tui, theme, _keys, done) => {
+          const answers = new Map<string, Answer>();
+          let questionIndex = 0;
           let optionIndex = 0;
-          let editMode = false;
-          let cachedLines: string[] | undefined;
-          let cachedWidth: number | undefined;
-          let settled = false;
-
-          function finish(value: TuiSelection) {
-            if (settled) return;
-            settled = true;
-            signal?.removeEventListener("abort", cancel);
-            done(value);
-          }
-
-          function cancel() {
-            finish({ status: "cancelled" });
-          }
-
-          signal?.addEventListener("abort", cancel, { once: true });
-          if (signal?.aborted) queueMicrotask(cancel);
-
-          const editorTheme: EditorTheme = {
+          let editing = false;
+          let finished = false;
+          const editor = new Editor(tui, {
             borderColor: (text) => theme.fg("accent", text),
             selectList: {
               selectedPrefix: (text) => theme.fg("accent", text),
@@ -286,261 +159,193 @@ export default function askUser(pi: ExtensionAPI) {
               scrollInfo: (text) => theme.fg("dim", text),
               noMatch: (text) => theme.fg("warning", text),
             },
+          });
+          const finish = (value: Outcome) => {
+            if (finished) return;
+            finished = true;
+            signal?.removeEventListener("abort", cancel);
+            done(value);
           };
-          const editor = new Editor(tui, editorTheme);
-
-          editor.onSubmit = (value) => {
-            const answer = value.trim();
-            if (answer) {
-              finish({ status: "custom", answer });
-              return;
-            }
-            editMode = false;
-            editor.setText("");
+          const cancel = () => finish({ status: "cancelled", answers: [] });
+          signal?.addEventListener("abort", cancel, { once: true });
+          if (signal?.aborted) queueMicrotask(cancel);
+          const refresh = () => tui.requestRender();
+          const go = (index: number) => {
+            questionIndex = Math.max(0, Math.min(questions.length, index));
+            const q = questions[questionIndex];
+            const saved = q ? answers.get(q.id) : undefined;
+            optionIndex = saved?.selectedIndex ? saved.selectedIndex - 1 : 0;
+            editing = !!q && (!q.options?.length || saved?.wasCustom === true);
+            editor.setText(saved?.wasCustom ? saved.answer : "");
             refresh();
           };
-
-          function refresh() {
-            cachedLines = undefined;
-            cachedWidth = undefined;
-            tui.requestRender();
-          }
-
-          function choose(index: number) {
-            const selected = options[index];
-            if (!selected) return;
-            if (selected.isCustom) {
-              optionIndex = index;
-              editMode = true;
-              editor.setText("");
-              refresh();
-              return;
-            }
-            finish({
-              status: "selected",
-              answer: selected.label,
-              index: index + 1,
+          const save = (answer: string, custom: boolean, index?: number) => {
+            const q = questions[questionIndex];
+            answers.set(q.id, {
+              id: q.id,
+              question: q.question,
+              answer,
+              wasCustom: custom,
+              selectedIndex: index,
             });
-          }
-
-          function handleInput(data: string) {
-            if (editMode) {
-              if (matchesKey(data, Key.escape)) {
-                editMode = false;
-                editor.setText("");
+            go(questionIndex + 1);
+          };
+          const choose = (index: number) => {
+            const options = questions[questionIndex].options ?? [];
+            if (index === options.length) {
+              optionIndex = index;
+              editing = true;
+              const saved = answers.get(questions[questionIndex].id);
+              editor.setText(saved?.wasCustom ? saved.answer : "");
+              refresh();
+            } else if (options[index])
+              save(options[index].label, false, index + 1);
+          };
+          editor.onSubmit = (value) => {
+            if (value.trim()) save(value.trim(), true);
+          };
+          go(0);
+          return {
+            handleInput(data: string) {
+              if (finished) return;
+              if (matchesKey(data, Key.tab)) {
+                go((questionIndex + 1) % (questions.length + 1));
+                return;
+              }
+              if (matchesKey(data, Key.shift("tab"))) {
+                go(questionIndex === 0 ? questions.length : questionIndex - 1);
+                return;
+              }
+              if (editing) {
+                if (matchesKey(data, Key.escape)) {
+                  editing = false;
+                  refresh();
+                  return;
+                }
+                editor.handleInput(data);
                 refresh();
                 return;
               }
-              editor.handleInput(data);
+              if (matchesKey(data, Key.escape)) {
+                finish({ status: "dismissed", answers: [] });
+                return;
+              }
+              if (matchesKey(data, Key.left)) {
+                go(questionIndex - 1);
+                return;
+              }
+              if (matchesKey(data, Key.right)) {
+                go(questionIndex + 1);
+                return;
+              }
+              if (questionIndex === questions.length) {
+                if (matchesKey(data, Key.enter)) {
+                  const missing = questions.findIndex(
+                    (q) => !answers.has(q.id),
+                  );
+                  if (missing >= 0) go(missing);
+                  else
+                    finish({
+                      status: "answered",
+                      answers: questions.map((q) => answers.get(q.id)!),
+                    });
+                }
+                return;
+              }
+              const count = (questions[questionIndex].options?.length ?? 0) + 1;
+              if (matchesKey(data, Key.up))
+                optionIndex = (optionIndex + count - 1) % count;
+              else if (matchesKey(data, Key.down))
+                optionIndex = (optionIndex + 1) % count;
+              else if (/^[1-6]$/.test(data)) choose(Number(data) - 1);
+              else if (matchesKey(data, Key.enter)) choose(optionIndex);
               refresh();
-              return;
-            }
-
-            if (matchesKey(data, Key.up)) {
-              optionIndex = (optionIndex - 1 + options.length) % options.length;
-              refresh();
-              return;
-            }
-            if (matchesKey(data, Key.down)) {
-              optionIndex = (optionIndex + 1) % options.length;
-              refresh();
-              return;
-            }
-
-            const key = parseKey(data) ?? data;
-            if (
-              key.length === 1 &&
-              key >= "1" &&
-              key <= String(options.length)
-            ) {
-              choose(Number(key) - 1);
-              return;
-            }
-
-            if (matchesKey(data, Key.enter)) {
-              choose(optionIndex);
-              return;
-            }
-            if (matchesKey(data, Key.escape)) {
-              finish({ status: "dismissed" });
-            }
-          }
-
-          function render(width: number) {
-            const renderWidth = Math.max(1, width);
-            if (cachedLines && cachedWidth === renderWidth) return cachedLines;
-            const lines: string[] = [];
-            lines.push(theme.fg("accent", "─".repeat(renderWidth)));
-            renderWrappedWithPrefix(
-              lines,
-              " ",
-              theme.fg("text", theme.bold(params.question)),
-              renderWidth,
-            );
-            lines.push("");
-
-            options.forEach((option, index) => {
-              const selected = index === optionIndex;
-              const prefix = selected ? theme.fg("accent", " ❯ ") : "   ";
-              const marker = option.isCustom ? "✎" : `${index + 1}.`;
-              const label = `${marker} ${option.label}${
-                option.isCustom && editMode ? " ✎" : ""
-              }`;
-              const color = selected
-                ? "accent"
-                : option.isCustom
-                  ? "muted"
-                  : "text";
-              renderWrappedWithPrefix(
-                lines,
-                prefix,
-                theme.fg(color, label),
-                renderWidth,
-              );
-              if (option.description) {
-                renderWrappedWithPrefix(
-                  lines,
-                  "      ",
-                  theme.fg("muted", option.description),
-                  renderWidth,
+            },
+            render(width: number) {
+              width = Math.max(1, width);
+              const lines: string[] = [theme.fg("accent", "─".repeat(width))];
+              const add = (text: string) =>
+                lines.push(...wrapTextWithAnsi(text, width));
+              const q = questions[questionIndex];
+              if (!q) {
+                add(theme.bold("Review answers"));
+                questions.forEach((q) =>
+                  add(
+                    `${q.question}: ${answers.get(q.id)?.answer ?? "(unanswered)"}`,
+                  ),
+                );
+                add(
+                  theme.fg(
+                    "dim",
+                    "Enter submit • Shift+Tab or ← edit • Esc dismiss",
+                  ),
+                );
+              } else {
+                add(
+                  theme.fg(
+                    "accent",
+                    `Question ${questionIndex + 1}/${questions.length}`,
+                  ),
+                );
+                add(theme.bold(q.question));
+                const options = [
+                  ...(q.options ?? []),
+                  { label: FREE_TEXT, description: undefined },
+                ];
+                options.forEach((option, i) => {
+                  add(
+                    theme.fg(
+                      i === optionIndex ? "accent" : "text",
+                      `${i === optionIndex ? "❯" : " "} ${i + 1}. ${option.label}`,
+                    ),
+                  );
+                  if (option.description)
+                    add(theme.fg("muted", `   ${option.description}`));
+                });
+                if (editing) lines.push(...editor.render(width));
+                add(
+                  theme.fg(
+                    "dim",
+                    editing
+                      ? "Enter save • Esc choices • Tab/Shift+Tab questions"
+                      : "↑↓ or number choose • Enter confirm • Tab/Shift+Tab questions • Esc dismiss",
+                  ),
                 );
               }
-            });
-
-            if (editMode) {
-              lines.push("");
-              renderWrappedWithPrefix(
-                lines,
-                " ",
-                theme.fg("muted", "Your answer:"),
-                renderWidth,
-              );
-              for (const line of editor.render(Math.max(1, renderWidth - 2))) {
-                lines.push(truncateToWidth(` ${line}`, renderWidth));
-              }
-            }
-
-            lines.push("");
-            renderWrappedWithPrefix(
-              lines,
-              " ",
-              theme.fg(
-                "dim",
-                editMode
-                  ? "Enter submit • Esc back to options"
-                  : `↑↓ or 1-${options.length} select • Enter confirm • Esc dismiss`,
-              ),
-              renderWidth,
-            );
-            lines.push(theme.fg("accent", "─".repeat(renderWidth)));
-
-            cachedLines = lines.map((line) =>
-              truncateToWidth(line, renderWidth),
-            );
-            cachedWidth = renderWidth;
-            return cachedLines;
-          }
-
-          return {
-            render,
-            invalidate: () => {
-              cachedLines = undefined;
-              cachedWidth = undefined;
+              lines.push(theme.fg("accent", "─".repeat(width)));
+              return lines.map((line) => truncateToWidth(line, width));
             },
-            handleInput,
-            dispose: () => signal?.removeEventListener("abort", cancel),
+            invalidate() {
+              editor.invalidate();
+            },
+            dispose() {
+              signal?.removeEventListener("abort", cancel);
+            },
           };
         },
       );
-
-      if (selection.status === "cancelled") {
-        return result(
-          params,
-          "cancelled",
-          buildAskUserResultMessage({ kind: "cancelled" }),
-        );
-      }
-      if (selection.status === "dismissed") {
-        return result(
-          params,
-          "dismissed",
-          buildAskUserResultMessage({ kind: "dismissed" }),
-        );
-      }
-      if (selection.status === "custom") {
-        return result(
-          params,
-          "custom",
-          buildAskUserResultMessage({
-            kind: "custom",
-            answer: selection.answer,
-          }),
-          selection.answer,
-        );
-      }
-      return result(
-        params,
-        "selected",
-        buildAskUserResultMessage({
-          kind: "selected",
-          answer: selection.answer,
-          index: selection.index,
-        }),
-        selection.answer,
-        selection.index,
+      return pack(
+        signal?.aborted ? { status: "cancelled", answers: [] } : outcome,
       );
     },
-
-    renderCall(args, theme, _context) {
-      let text = theme.fg("toolTitle", theme.bold("ask_user "));
-      text += theme.fg("muted", args.question);
-      if (args.options.length > 0) {
-        const options = [
-          ...args.options.map(
-            (option, index) => `${index + 1}. ${option.label}`,
-          ),
-          `${args.options.length + 1}. ${WRITE_OWN_ANSWER_LABEL}`,
-        ];
-        text += `\n${theme.fg("dim", `  ${options.join("  ")}`)}`;
-      }
-      return new Text(text, 0, 0);
-    },
-
-    renderResult(toolResult, _options, theme, _context) {
-      const details = toolResult.details as AskUserDetails | undefined;
-      if (!details) {
-        const first = toolResult.content[0];
-        return new Text(first?.type === "text" ? first.text : "", 0, 0);
-      }
-
-      if (details.status === "unavailable") {
-        return new Text(
-          theme.fg("warning", "Interactive UI unavailable"),
-          0,
-          0,
-        );
-      }
-      if (details.status === "cancelled") {
-        return new Text(theme.fg("warning", "✗ cancelled"), 0, 0);
-      }
-      if (details.status === "dismissed") {
-        return new Text(theme.fg("warning", "✗ dismissed"), 0, 0);
-      }
-      if (details.status === "custom") {
-        return new Text(
-          theme.fg("success", "✓ ") +
-            theme.fg("muted", "(wrote) ") +
-            theme.fg("accent", details.answer ?? ""),
-          0,
-          0,
-        );
-      }
-
-      const selectedIndex = details.selectedIndex ?? 0;
-      const selected = selectedIndex > 0 ? `${selectedIndex}. ` : "";
+    renderCall(args, theme) {
+      const questions =
+        "questions" in args ? args.questions : [{ question: args.question }];
       return new Text(
-        theme.fg("success", "✓ ") +
-          theme.fg("accent", `${selected}${details.answer ?? ""}`),
+        theme.fg("toolTitle", theme.bold("ask_user ")) +
+          questions.map((q) => q.question).join("\n"),
+        0,
+        0,
+      );
+    },
+    renderResult(result, _options, theme) {
+      const details = result.details as Outcome | undefined;
+      const text =
+        details?.status === "answered"
+          ? details.answers.map((a) => `${a.question}: ${a.answer}`).join("\n")
+          : `ask_user ${details?.status ?? "unavailable"}`;
+      return new Text(
+        theme.fg(details?.status === "answered" ? "success" : "warning", text),
         0,
         0,
       );
