@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "Catppuccin Mocha",
+  "appearance": "dark",
+  "colors": {
+    "canvas": "#1e1e2e",
+    "accent": "#cba6f7",
+    "chrome": "#181825",
+    "surface": "#313244",
+    "surfaceRaised": "#45475a",
+    "text": "#cdd6f4",
+    "textMuted": "#a6adc8",
+    "border": "#45475a",
+    "input": "#313244",
+    "accentForeground": "#1e1e2e",
+    "sidebar": "#11111b",
+    "sidebarForeground": "#cdd6f4",
+    "codeBackground": "#181825",
+    "codeForeground": "#cdd6f4",
+    "terminalBackground": "#1e1e2e",
+    "terminalForeground": "#cdd6f4",
+    "terminalCursor": "#f5e0dc",
+    "terminalSelection": "#45475a",
+    "error": "#f38ba8",
+    "warning": "#f9e2af",
+    "update": "#a6e3a1"
+  }
+}

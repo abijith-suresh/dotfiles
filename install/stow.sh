@@ -26,6 +26,7 @@ STOW_PACKAGES=(
   pi
   ripgrep
   starship
+  t3
   tmux
   vim
   zellij
