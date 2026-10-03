@@ -77,3 +77,8 @@ done
 if [[ -t 0 && -t 1 && -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
   source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
+
+# Local customizations (gitignored)
+if [[ -r "$ZDOTDIR/.zshrc.local" ]]; then
+  source "$ZDOTDIR/.zshrc.local"
+fi
