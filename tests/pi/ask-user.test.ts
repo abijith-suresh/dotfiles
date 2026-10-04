@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import askUser from "../extensions/ask-user/index.ts";
+import askUser from "../../configs/pi/.pi/agent/extensions/ask-user/index.ts";
 
 function fixture() {
   let tool: any;

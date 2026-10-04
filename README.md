@@ -65,9 +65,9 @@ reasoning settings. Fresh installs do not configure MCP servers; existing owned
 Codex settings retain their local MCP blocks. Railway uses its
 [official CLI](https://docs.railway.com/cli).
 
-`install.sh` updates Pi to the latest stable npm release. Its extensions share
-one lockfile and typecheck against the installed CLI. The
-[Pi subagent guide](configs/pi/.pi/agent/skills/subagents/SKILL.md) covers
+`install.sh` updates Pi to the latest stable npm release. Pi loads the local
+TypeScript extensions directly through its SDK, without an extension dependency
+install. The [Pi subagent guide](configs/pi/.pi/agent/skills/subagents/SKILL.md) covers
 foreground and background tasks. `ask_user` accepts related questions together.
 OpenCode installs from the official v2 channel, upgrades existing v1 installs,
 and leaves v2 installs alone.

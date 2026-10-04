@@ -26,7 +26,7 @@ import {
   type SubagentSnapshot,
 } from "./src/domain.ts";
 import { formatContextUtilization } from "./src/format.ts";
-import { SubagentManager, type SubagentManagerShape } from "./src/manager.ts";
+import { createSubagentManager, type SubagentManager } from "./src/manager.ts";
 import {
   buildSubagentResultMessage,
   buildSubagentSpawnResult,
@@ -43,11 +43,6 @@ import {
   SUBAGENT_WAIT_TOOL_DESCRIPTION,
 } from "./src/prompt.ts";
 import { createDeferredResultDelivery } from "./src/result-delivery.ts";
-import {
-  createSubagentRuntime,
-  runTool,
-  type SubagentRuntime,
-} from "./src/runtime.ts";
 
 const SUBAGENT_OUTPUT_MAX_BYTES = 24 * 1024;
 const WAIT_OUTPUT_MAX_BYTES = 48 * 1024;
@@ -110,10 +105,7 @@ function resolveChildProjectTrust(options: {
   }
 }
 
-function resolveSubagentIds(
-  manager: SubagentManagerShape,
-  requested: string[],
-) {
+function resolveSubagentIds(manager: SubagentManager, requested: string[]) {
   const ids = [...new Set(requested)];
   if (ids.length === 0) throw new Error("Provide at least one subagent id.");
   const unknown = ids.filter((id) => {
@@ -133,24 +125,18 @@ function resolveSubagentIds(
 }
 
 export default function (pi: ExtensionAPI) {
-  let runtime: SubagentRuntime | undefined;
-  let managerPromise: Promise<SubagentManagerShape> | undefined;
+  let manager: SubagentManager | undefined;
   let sessionContext: ExtensionContext | undefined;
   let ui: ExtensionContext["ui"] | undefined;
   let spawning = 0;
   const resultDelivery = createDeferredResultDelivery<SubagentSnapshot>();
 
-  const getRuntime = () => (runtime ??= createSubagentRuntime());
-
-  /** Resolve the manager service once per runtime and wire the extension hooks. */
   const getManager = () => {
-    managerPromise ??= getRuntime()
-      .runPromise(SubagentManager)
-      .then((manager) => {
-        manager.view.setOnSettled(onSettled);
-        return manager;
-      });
-    return managerPromise;
+    if (!manager) {
+      manager = createSubagentManager();
+      manager.view.setOnSettled(onSettled);
+    }
+    return manager;
   };
 
   const deliverResult = (snap: SubagentSnapshot) => {
@@ -198,8 +184,7 @@ export default function (pi: ExtensionAPI) {
   };
 
   const onSettled = (snap: SubagentSnapshot) => {
-    // A shutdown can settle children while disposing their scopes. Never
-    // append into a session whose extension runtime is already closing.
+    // A closing parent must not receive child results.
     if (!sessionContext) return;
     if (snap.origin === "btw") {
       deliverBtwResult({ ...snap, meta: { ...snap.meta } });
@@ -220,33 +205,30 @@ export default function (pi: ExtensionAPI) {
     sessionContext = undefined;
     resultDelivery.clear();
     ui = undefined;
-    const closing = runtime;
-    runtime = undefined;
-    managerPromise = undefined;
-    // Disposing the runtime runs the manager finalizer, which tears down all
-    // subagent scopes and their Pi SDK sessions.
+    const closing = manager;
+    manager = undefined;
     await closing?.dispose();
   });
 
   const collectResults = async (
-    manager: SubagentManagerShape,
+    manager: SubagentManager,
     ids: string[],
     signal?: AbortSignal,
     onUpdate?: AgentToolUpdateCallback<unknown>,
   ) => {
     const release = resultDelivery.hold(ids);
     try {
-      await runTool(
-        getRuntime(),
-        manager.waitFor(ids, (pending) => {
+      await manager.waitFor(
+        ids,
+        (pending) => {
           onUpdate?.({
             content: [
               { type: "text", text: `Waiting for ${pending.join(", ")}...` },
             ],
             details: { pending },
           });
-        }),
-        { signal, interruptMessage: "Wait aborted. Subagents keep running." },
+        },
+        signal,
       );
 
       // Settlement may have happened before this wait began. Remove any
@@ -342,7 +324,7 @@ export default function (pi: ExtensionAPI) {
       ),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
-      const manager = await getManager();
+      const manager = getManager();
       const cwd = path.resolve(ctx.cwd, params.working_dir ?? ".");
       if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
         throw new Error(`working_dir is not a directory: ${cwd}`);
@@ -352,9 +334,8 @@ export default function (pi: ExtensionAPI) {
       spawning++;
       let snap: SubagentSnapshot;
       try {
-        snap = await runTool(
-          getRuntime(),
-          manager.spawn({
+        snap = await manager.spawn(
+          {
             prompt: params.prompt,
             title,
             cwd,
@@ -373,8 +354,8 @@ export default function (pi: ExtensionAPI) {
               inheritedThinkingLevel: pi.getThinkingLevel(),
               modelRegistry: ctx.modelRegistry,
             },
-          }),
-          { signal, interruptMessage: "Subagent spawn aborted." },
+          },
+          signal,
         );
 
         if (params.mode === "foreground") {
@@ -418,7 +399,7 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
-      const manager = await getManager();
+      const manager = getManager();
       const ids = resolveSubagentIds(manager, params.ids);
 
       return collectResults(manager, ids, signal, onUpdate);
@@ -435,15 +416,12 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
     async execute(_toolCallId, params, signal) {
-      const manager = await getManager();
+      const manager = getManager();
       const ids = resolveSubagentIds(manager, params.ids);
 
       const release = resultDelivery.hold(ids);
       try {
-        const report = await runTool(getRuntime(), manager.cancel(ids), {
-          signal,
-          interruptMessage: "Subagent cancellation aborted.",
-        });
+        const report = await manager.cancel(ids, signal);
 
         resultDelivery.consume(ids);
         const lines = report.map((entry) =>
@@ -479,7 +457,7 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
     async execute(_toolCallId, params) {
-      const manager = await getManager();
+      const manager = getManager();
       const snap = manager.view.get(params.id);
       if (!snap || !isModelVisible(snap)) {
         const known = manager.view
@@ -516,7 +494,7 @@ export default function (pi: ExtensionAPI) {
     description: SUBAGENT_LIST_TOOL_DESCRIPTION,
     parameters: Type.Object({}),
     async execute() {
-      const manager = await getManager();
+      const manager = getManager();
       const subs = manager.view.list().filter(isModelVisible);
       const text =
         subs.length === 0
@@ -648,27 +626,24 @@ export default function (pi: ExtensionAPI) {
       if (!prompt) return;
     }
 
-    const manager = await getManager();
+    const manager = getManager();
     let snap: SubagentSnapshot;
     try {
-      snap = await runTool(
-        getRuntime(),
-        manager.spawn({
-          origin: "btw",
-          prompt,
-          title: deriveBtwTitle(prompt),
-          cwd: ctx.cwd,
-          parent: {
-            parentCwd: ctx.cwd,
-            projectTrusted: ctx.isProjectTrusted(),
-            inheritedModel: ctx.model
-              ? { provider: ctx.model.provider, id: ctx.model.id }
-              : undefined,
-            inheritedThinkingLevel: pi.getThinkingLevel(),
-            modelRegistry: ctx.modelRegistry,
-          },
-        }),
-      );
+      snap = await manager.spawn({
+        origin: "btw",
+        prompt,
+        title: deriveBtwTitle(prompt),
+        cwd: ctx.cwd,
+        parent: {
+          parentCwd: ctx.cwd,
+          projectTrusted: ctx.isProjectTrusted(),
+          inheritedModel: ctx.model
+            ? { provider: ctx.model.provider, id: ctx.model.id }
+            : undefined,
+          inheritedThinkingLevel: pi.getThinkingLevel(),
+          modelRegistry: ctx.modelRegistry,
+        },
+      });
     } catch (error) {
       ctx.ui.notify(
         error instanceof Error ? error.message : String(error),

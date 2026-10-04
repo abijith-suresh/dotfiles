@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
-import { Effect, Exit, Scope, Stream } from "effect";
 import * as sdk from "@earendil-works/pi-coding-agent";
 
 let current: any;
@@ -67,7 +66,7 @@ mock.module("@earendil-works/pi-coding-agent", {
   },
 });
 const { spawnPiSession } =
-  await import("../extensions/subagents/src/backends/pi.ts");
+  await import("../../configs/pi/.pi/agent/extensions/subagents/src/pi-session.ts");
 const task = (prompt = "task") => ({
   prompt,
   title: "offline",
@@ -80,14 +79,18 @@ const task = (prompt = "task") => ({
   },
 });
 async function spawn(prompt = "task") {
-  const scope = await Effect.runPromise(Scope.make());
-  const session = await Effect.runPromise(
-    Scope.provide(spawnPiSession(task(prompt) as any), scope),
-  );
+  const session = await spawnPiSession(task(prompt) as any);
+  const events: any[] = [];
+  const terminal = Promise.withResolvers<any>();
+  session.start((event) => {
+    events.push(event);
+    if (event._tag === "RunSettled") terminal.resolve(event);
+  });
   return {
     session,
-    scope,
-    close: () => Effect.runPromise(Scope.close(scope, Exit.void)),
+    events,
+    terminal: terminal.promise,
+    close: () => session.dispose(),
   };
 }
 
@@ -103,17 +106,13 @@ test("native SDK child excludes delegation and ask_user; cancellation settles on
       "ask_user",
     ])
       assert(options.excludeTools.includes(name));
-    const terminal = Effect.runPromise(
-      Stream.runCollect(
-        f.session.events.pipe(
-          Stream.filter((e) => e._tag === "RunSettled"),
-          Stream.take(1),
-        ),
-      ),
+    await f.session.interrupt();
+    assert.equal((await f.terminal).outcome._tag, "Interrupted");
+    await f.session.interrupt();
+    assert.equal(
+      f.events.filter((event) => event._tag === "RunSettled").length,
+      1,
     );
-    await Effect.runPromise(f.session.interrupt);
-    assert.equal((await terminal)[0].outcome._tag, "Interrupted");
-    await Effect.runPromise(f.session.interrupt);
   } finally {
     await f.close();
   }
@@ -124,16 +123,9 @@ test("native SDK child excludes delegation and ask_user; cancellation settles on
 test("prompt preflight rejection becomes a terminal error", async () => {
   const f = await spawn("reject");
   try {
-    const events = await Effect.runPromise(
-      Stream.runCollect(
-        f.session.events.pipe(
-          Stream.filter((e) => e._tag === "RunSettled"),
-          Stream.take(1),
-        ),
-      ),
-    );
-    assert.equal(events[0].outcome._tag, "Failed");
-    assert.match((events[0].outcome as any).errorText, /preflight failed/);
+    const event = await f.terminal;
+    assert.equal(event.outcome._tag, "Failed");
+    assert.match(event.outcome.errorText, /preflight failed/);
   } finally {
     await f.close();
   }
@@ -141,28 +133,19 @@ test("prompt preflight rejection becomes a terminal error", async () => {
 });
 test("extension startup failure disposes the freshly-created SDK session", async () => {
   bindFailure = true;
-  const scope = await Effect.runPromise(Scope.make());
   try {
-    await assert.rejects(
-      Effect.runPromise(Scope.provide(spawnPiSession(task() as any), scope)),
-      /bind failed/,
-    );
+    await assert.rejects(spawnPiSession(task() as any), /bind failed/);
     assert.equal(current.closed, 1);
   } finally {
     bindFailure = false;
-    await Effect.runPromise(Scope.close(scope, Exit.void));
   }
 });
 test("aborted creation disposes a child that arrives after its tool was cancelled", async () => {
   const controller = new AbortController();
-  const scope = await Effect.runPromise(Scope.make());
   const gate = Promise.withResolvers<void>();
   creationGate = gate.promise;
   try {
-    const running = Effect.runPromise(
-      Scope.provide(spawnPiSession(task() as any), scope),
-      { signal: controller.signal },
-    );
+    const running = spawnPiSession(task() as any, controller.signal);
     const rejected = assert.rejects(running);
     await new Promise((resolve) => setImmediate(resolve));
     controller.abort();
@@ -173,20 +156,12 @@ test("aborted creation disposes a child that arrives after its tool was cancelle
   } finally {
     creationGate = undefined;
     gate.resolve();
-    await Effect.runPromise(Scope.close(scope, Exit.void));
   }
 });
 
 test("native events retain status and final output without copying the SDK transcript", async () => {
   const f = await spawn();
   try {
-    const collected = Effect.runPromise(
-      Stream.runCollect(
-        f.session.events.pipe(
-          Stream.takeUntil((event) => event._tag === "RunSettled"),
-        ),
-      ),
-    );
     current.getContextUsage = () => ({ tokens: 2048, contextWindow: 4096 });
     const message = {
       role: "assistant",
@@ -242,11 +217,10 @@ test("native events retain status and final output without copying the SDK trans
     ])
       current.emit(event);
     current.isStreaming = false;
-    const events = await collected;
+    await f.terminal;
+    const events = f.events;
     assert.deepEqual(
-      events.filter(
-        (event) => event._tag !== "RunStarted" && event._tag !== "MetaChanged",
-      ),
+      events.filter((event) => event._tag !== "MetaChanged"),
       [
         { _tag: "AssistantDelta", delta: "live text" },
         { _tag: "AssistantMessage" },
@@ -257,10 +231,7 @@ test("native events retain status and final output without copying the SDK trans
         },
       ],
     );
-    assert.equal(
-      (await Effect.runPromise(f.session.meta)).sessionFilePath,
-      "offline-session",
-    );
+    assert.equal(f.session.meta().sessionFilePath, "offline-session");
     assert.equal(current.messages[0], message);
   } finally {
     await f.close();

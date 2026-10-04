@@ -1,61 +1,49 @@
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
-import { Effect, Layer, ManagedRuntime, Queue, Stream } from "effect";
-import { SubagentSpawner } from "../extensions/subagents/src/backend.ts";
-import { SubagentManagerLive } from "../extensions/subagents/src/manager.ts";
-import { createDeferredResultDelivery } from "../extensions/subagents/src/result-delivery.ts";
-import { runTool } from "../extensions/subagents/src/runtime.ts";
+import { createDeferredResultDelivery } from "../../configs/pi/.pi/agent/extensions/subagents/src/result-delivery.ts";
 
 const children: any[] = [];
-const backend = {
-  spawn: (task: any) =>
-    Effect.gen(function* () {
-      const queue = yield* Queue.make();
-      const child = {
-        task,
-        closed: 0,
-        end: () => Queue.endUnsafe(queue),
-        emit: (event: any) => Queue.offerUnsafe(queue, event),
-      };
-      children.push(child);
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
+let creationGate: Promise<void> | undefined;
+mock.module(
+  "../../configs/pi/.pi/agent/extensions/subagents/src/pi-session.ts",
+  {
+    exports: {
+      spawnPiSession: async (task: any, signal?: AbortSignal) => {
+        await creationGate;
+        const child = { task, closed: 0, emit: (_event: any) => {} };
+        children.push(child);
+        if (signal?.aborted) {
           child.closed++;
-          Queue.endUnsafe(queue);
-        }),
-      );
-      if (task.prompt === "instant")
-        child.emit({
-          _tag: "RunSettled",
-          outcome: { _tag: "Completed", finalText: "instant answer" },
-        });
-      return {
-        meta: Effect.succeed({ backend: "pi", modelLabel: "test/model" }),
-        events: Stream.fromQueue(queue),
-        interrupt:
-          task.prompt === "hang"
-            ? Effect.never
-            : Effect.sync(() =>
-                child.emit({
-                  _tag: "RunSettled",
-                  outcome: { _tag: "Interrupted", partialText: "partial" },
-                }),
-              ),
-      };
-    }),
-};
-mock.module("../extensions/subagents/src/runtime.ts", {
-  exports: {
-    runTool,
-    createSubagentRuntime: () =>
-      ManagedRuntime.make(
-        SubagentManagerLive.pipe(
-          Layer.provide(Layer.succeed(SubagentSpawner, backend.spawn)),
-        ),
-      ),
+          signal.throwIfAborted();
+        }
+        return {
+          meta: () => ({ backend: "pi", modelLabel: "test/model" }),
+          start(listener: (event: any) => void) {
+            child.emit = listener;
+            if (task.prompt === "instant")
+              child.emit({
+                _tag: "RunSettled",
+                outcome: { _tag: "Completed", finalText: "instant answer" },
+              });
+          },
+          interrupt: async () => {
+            if (task.prompt === "hang") await new Promise(() => {});
+            else
+              child.emit({
+                _tag: "RunSettled",
+                outcome: { _tag: "Interrupted", partialText: "partial" },
+              });
+          },
+          dispose: async () => {
+            child.closed++;
+          },
+        };
+      },
+    },
   },
-});
-const { default: subagents } = await import("../extensions/subagents/index.ts");
+);
+const { default: subagents } =
+  await import("../../configs/pi/.pi/agent/extensions/subagents/index.ts");
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 async function until(predicate: () => boolean) {
   for (let i = 0; i < 200 && !predicate(); i++) await tick();
@@ -127,7 +115,6 @@ test("background spawn returns before completion, settles once and releases the 
     assert.equal(children[0].closed, 0);
     assert.equal(f.commands.has("subagents"), false);
     complete(children[0]);
-    children[0].emit({ _tag: "RunStarted" });
     complete(children[0], "duplicate");
     await until(() => children[0].closed === 1);
     assert.equal(f.messages.length, 0);
@@ -288,18 +275,6 @@ test("delivery holds survive cancellation and reject late duplicate settlement",
   assert.deepEqual(delivery.drain(), []);
 });
 
-test("unexpected stream end reports an error and releases the session", async () => {
-  const f = await fixture();
-  try {
-    await f.call("subagent_spawn", { name: "stream", prompt: "stream" });
-    children[0].end();
-    await until(() => children[0].closed === 1);
-    await f.idle();
-    assert.match(f.messages[0].content, /event stream ended unexpectedly/);
-  } finally {
-    await f.shutdown();
-  }
-});
 test("shutdown discards a settled result still pending parent delivery", async () => {
   const f = await fixture();
   await f.call("subagent_spawn", { name: "pending", prompt: "pending" });
@@ -382,5 +357,27 @@ test("wait and cancel reject empty, unknown and private ids without touching chi
     assert.equal(f.messages.length, 0);
   } finally {
     await f.shutdown();
+  }
+});
+
+test("shutdown during SDK creation prevents a late child from starting", async () => {
+  const f = await fixture();
+  const gate = Promise.withResolvers<void>();
+  creationGate = gate.promise;
+  try {
+    const pending = f.call("subagent_spawn", {
+      name: "opening",
+      prompt: "opening",
+    });
+    const rejected = assert.rejects(pending, /shutting down/);
+    await tick();
+    await f.shutdown();
+    gate.resolve();
+    await rejected;
+    assert.equal(children[0].closed, 1);
+    assert.equal(f.messages.length, 0);
+  } finally {
+    creationGate = undefined;
+    gate.resolve();
   }
 });

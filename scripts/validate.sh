@@ -22,7 +22,7 @@ check_bash() {
   local status=0
   while IFS= read -r -d '' file; do
     bash -n "$file" || status=1
-  done < <(find . -path './.git' -prune -o -type f \( -name '*.sh' -o -name 'install.sh' -o -name 'boot.sh' \) -print0)
+  done < <(find . -type d \( -name .git -o -name node_modules \) -prune -o -type f -name '*.sh' -print0)
   return "$status"
 }
 
@@ -51,7 +51,7 @@ check_shellcheck() {
     printf '  shellcheck not installed; skipping\n'
     return 0
   }
-  mapfile -d '' files < <(find . -path './.git' -prune -o -type f \( -name '*.sh' -o -name 'install.sh' -o -name 'boot.sh' \) -print0)
+  mapfile -d '' files < <(find . -type d \( -name .git -o -name node_modules \) -prune -o -type f -name '*.sh' -print0)
   shellcheck "${files[@]}"
 }
 

@@ -75,7 +75,4 @@ section "Configuration"
 source "$DOTFILES_DIR/install/stow.sh"
 stow_all
 
-section "Agent package dependencies"
-run_tolerant_script "pi-setup" "$DOTFILES_DIR/install/apps/agents/pi-setup.sh"
-
 print_final_summary

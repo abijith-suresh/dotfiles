@@ -24,7 +24,3 @@ Use these tools when needed:
 Do not repeatedly poll status or create duplicate tasks. Background errors also arrive automatically. Settled children release their SDK sessions, and shutting down the parent closes active children without sending late results. Background work needs a running parent process; it does not survive Pi exiting.
 
 There is no subagent dashboard, transcript viewer or takeover command. `/btw <question>` starts a user aside in the TUI and displays its answer as a session entry without adding it to the main model's context.
-
-Dependencies stay under `~/.pi/agent/node_modules`. The setup installer links SDK types to the installed CLI and adds an ignored dependency link beside canonical Stow source files. Existing source dependencies are renamed to `node_modules.backup` or a numbered backup before linking. The same applies to dependencies left by the removed nested subagents package. The installer prints each backup location and keeps its contents. The single package lock pins external libraries, not Pi. Rerun `install.sh` after upgrading Pi to synchronize the links and typecheck extensions. No credentials or existing sessions move.
-
-For local verification, use an isolated HOME and runtime prefix. Run `npm run check` and `npm test` from the temporary agent directory. `PI_TEST_RUNTIME=/absolute/path/to/installed/pi-coding-agent scripts/test-pi-installer.sh` also checks the real Stow layout, repeated setup and Pi resource loading without model calls.

@@ -1,5 +1,4 @@
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
-import { Data } from "effect";
 
 /** Who initiated the session. User asides stay out of model-facing tooling. */
 export type SubagentOrigin = "model" | "btw";
@@ -69,7 +68,6 @@ export type RunOutcome =
 
 /** Events needed by status tools and result delivery. Pi persists the full transcript. */
 export type SubagentEvent =
-  | { readonly _tag: "RunStarted" }
   | { readonly _tag: "RunSettled"; readonly outcome: RunOutcome }
   | { readonly _tag: "AssistantDelta"; readonly delta: string }
   | { readonly _tag: "AssistantMessage" }
@@ -123,15 +121,3 @@ export function formatElapsed(snap: SubagentSnapshot) {
     ? `${minutes}m${seconds.toString().padStart(2, "0")}s`
     : `${seconds}s`;
 }
-
-// --- Errors -------------------------------------------------------------------
-
-export class SpawnError extends Data.TaggedError("SpawnError")<{
-  readonly message: string;
-}> {}
-
-export class ConcurrencyLimitError extends Data.TaggedError(
-  "ConcurrencyLimitError",
-)<{
-  readonly message: string;
-}> {}
