@@ -110,6 +110,28 @@ function resolveChildProjectTrust(options: {
   }
 }
 
+function resolveSubagentIds(
+  manager: SubagentManagerShape,
+  requested: string[],
+) {
+  const ids = [...new Set(requested)];
+  if (ids.length === 0) throw new Error("Provide at least one subagent id.");
+  const unknown = ids.filter((id) => {
+    const snap = manager.view.get(id);
+    return !snap || !isModelVisible(snap);
+  });
+  if (unknown.length > 0) {
+    const known = manager.view
+      .list()
+      .filter(isModelVisible)
+      .map((snap) => snap.id);
+    throw new Error(
+      `Unknown subagent id(s): ${unknown.join(", ")}. Known: ${known.join(", ") || "none"}.`,
+    );
+  }
+  return ids;
+}
+
 export default function (pi: ExtensionAPI) {
   let runtime: SubagentRuntime | undefined;
   let managerPromise: Promise<SubagentManagerShape> | undefined;
@@ -303,7 +325,6 @@ export default function (pi: ExtensionAPI) {
       name: Type.String({
         description: SUBAGENT_SPAWN_PARAMETER_DESCRIPTIONS.name,
       }),
-      // Pi-only backend. The harness is always "pi" — no claude/codex needed.
       working_dir: Type.Optional(
         Type.String({
           description: SUBAGENT_SPAWN_PARAMETER_DESCRIPTIONS.workingDir,
@@ -322,8 +343,6 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const manager = await getManager();
-      const harness = "pi" as const;
-
       const cwd = path.resolve(ctx.cwd, params.working_dir ?? ".");
       if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
         throw new Error(`working_dir is not a directory: ${cwd}`);
@@ -335,7 +354,7 @@ export default function (pi: ExtensionAPI) {
       try {
         snap = await runTool(
           getRuntime(),
-          manager.spawn(harness, {
+          manager.spawn({
             prompt: params.prompt,
             title,
             cwd,
@@ -368,7 +387,6 @@ export default function (pi: ExtensionAPI) {
               text: buildSubagentSpawnResult({
                 id: snap.id,
                 title: snap.title,
-                harness: "pi",
                 modelLabel: snap.meta.modelLabel ?? "?",
                 cwd,
               }),
@@ -378,7 +396,7 @@ export default function (pi: ExtensionAPI) {
             id: snap.id,
             title: snap.title,
             cwd,
-            harness,
+            harness: "pi",
             model: snap.meta.modelLabel,
           },
         };
@@ -401,22 +419,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal, onUpdate) {
       const manager = await getManager();
-      const ids = [...new Set(params.ids)];
-      if (ids.length === 0)
-        throw new Error("Provide at least one subagent id.");
-      const known = manager.view
-        .list()
-        .filter(isModelVisible)
-        .map((snap) => snap.id);
-      const unknown = ids.filter((id) => {
-        const snap = manager.view.get(id);
-        return !snap || !isModelVisible(snap);
-      });
-      if (unknown.length > 0) {
-        throw new Error(
-          `Unknown subagent id(s): ${unknown.join(", ")}. Known: ${known.join(", ") || "none"}.`,
-        );
-      }
+      const ids = resolveSubagentIds(manager, params.ids);
 
       return collectResults(manager, ids, signal, onUpdate);
     },
@@ -433,23 +436,7 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, signal) {
       const manager = await getManager();
-      const ids = [...new Set(params.ids)];
-      if (ids.length === 0)
-        throw new Error("Provide at least one subagent id.");
-
-      const known = manager.view
-        .list()
-        .filter(isModelVisible)
-        .map((snap) => snap.id);
-      const unknown = ids.filter((id) => {
-        const snap = manager.view.get(id);
-        return !snap || !isModelVisible(snap);
-      });
-      if (unknown.length > 0) {
-        throw new Error(
-          `Unknown subagent id(s): ${unknown.join(", ")}. Known: ${known.join(", ") || "none"}.`,
-        );
-      }
+      const ids = resolveSubagentIds(manager, params.ids);
 
       const release = resultDelivery.hold(ids);
       try {
@@ -666,7 +653,7 @@ export default function (pi: ExtensionAPI) {
     try {
       snap = await runTool(
         getRuntime(),
-        manager.spawn("pi", {
+        manager.spawn({
           origin: "btw",
           prompt,
           title: deriveBtwTitle(prompt),

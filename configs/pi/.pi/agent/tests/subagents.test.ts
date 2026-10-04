@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 import { Effect, Layer, ManagedRuntime, Queue, Stream } from "effect";
-import { BackendRegistry } from "../extensions/subagents/src/backend.ts";
+import { SubagentSpawner } from "../extensions/subagents/src/backend.ts";
 import { SubagentManagerLive } from "../extensions/subagents/src/manager.ts";
 import { createDeferredResultDelivery } from "../extensions/subagents/src/result-delivery.ts";
 import { runTool } from "../extensions/subagents/src/runtime.ts";
 
 const children: any[] = [];
 const backend = {
-  name: "pi",
-  available: Effect.succeed(true),
   spawn: (task: any) =>
     Effect.gen(function* () {
       const queue = yield* Queue.make();
@@ -52,9 +50,7 @@ mock.module("../extensions/subagents/src/runtime.ts", {
     createSubagentRuntime: () =>
       ManagedRuntime.make(
         SubagentManagerLive.pipe(
-          Layer.provide(
-            Layer.succeed(BackendRegistry, new Map([["pi", backend]])),
-          ),
+          Layer.provide(Layer.succeed(SubagentSpawner, backend.spawn)),
         ),
       ),
   },
@@ -71,6 +67,7 @@ async function fixture() {
   const hooks = new Map<string, any>();
   const commands = new Map<string, any>();
   const messages: any[] = [];
+  const entries: any[] = [];
   let idle = false;
   const ctx = {
     cwd: process.cwd(),
@@ -86,6 +83,7 @@ async function fixture() {
       commands.set(name, command),
     registerMessageRenderer() {},
     registerEntryRenderer() {},
+    appendEntry: (type: string, data: any) => entries.push({ type, data }),
     getThinkingLevel: () => "off",
     sendMessage: (message: any, options: any) =>
       messages.push({ ...message, options }),
@@ -93,7 +91,15 @@ async function fixture() {
   await hooks.get("session_start")({}, ctx);
   return {
     messages,
+    entries,
     commands,
+    btw: (prompt: string) =>
+      commands.get("btw").handler(prompt, {
+        ...ctx,
+        mode: "tui",
+        hasUI: true,
+        ui: { notify() {} },
+      }),
     call: (name: string, args: any, signal?: AbortSignal) =>
       tools.get(name).execute("test", args, signal, undefined, ctx),
     idle: async () => {
@@ -311,6 +317,67 @@ test("cancel force-disposes a backend that never acknowledges interruption", asy
     await until(() => children[0].closed === 1);
     const status = await f.call("subagent_check", { id: "sa-1" });
     assert.match(status.content[0].text, /force-disposed/);
+    await f.idle();
+    assert.equal(f.messages.length, 0);
+  } finally {
+    await f.shutdown();
+  }
+});
+
+test("status retains streaming text, turn counts, usage and final output", async () => {
+  const f = await fixture();
+  try {
+    await f.call("subagent_spawn", { name: "streaming", prompt: "streaming" });
+    const child = children[0];
+    child.emit({ _tag: "AssistantDelta", delta: "live preview" });
+    child.emit({ _tag: "UsageChanged", tokens: 2048, contextWindow: 4096 });
+    child.emit({
+      _tag: "MetaChanged",
+      meta: { modelLabel: "test/updated", sessionFilePath: "native-session" },
+    });
+    await tick();
+    const live = await f.call("subagent_check", { id: "sa-1" });
+    assert.match(live.content[0].text, /live preview/);
+    assert.match(live.content[0].text, /test\/updated/);
+    assert.match(live.content[0].text, /50%\/4.1k/);
+    child.emit({ _tag: "AssistantMessage" });
+    await tick();
+    const between = await f.call("subagent_check", { id: "sa-1" });
+    assert.equal(between.details.turns, 1);
+    assert.doesNotMatch(between.content[0].text, /live preview/);
+    complete(child, "finished answer");
+    const result = await f.call("subagent_wait", { ids: ["sa-1", "sa-1"] });
+    assert.equal(result.details.results.length, 1);
+    assert.match(result.content[0].text, /finished answer/);
+    await until(() => child.closed === 1);
+  } finally {
+    await f.shutdown();
+  }
+});
+
+test("wait and cancel reject empty, unknown and private ids without touching children", async () => {
+  const f = await fixture();
+  try {
+    await f.call("subagent_spawn", { name: "public", prompt: "public" });
+    await f.btw("private side question");
+    for (const tool of ["subagent_wait", "subagent_cancel"]) {
+      await assert.rejects(f.call(tool, { ids: [] }), /at least one/);
+      await assert.rejects(
+        f.call(tool, { ids: ["unknown"] }),
+        /Unknown.*Known: sa-1/,
+      );
+      await assert.rejects(
+        f.call(tool, { ids: ["btw-1"] }),
+        /Unknown.*Known: sa-1/,
+      );
+    }
+    assert(children.every((child) => child.closed === 0));
+    const listed = await f.call("subagent_list", {});
+    assert.equal(listed.details.subagents.length, 1);
+    complete(children[1], "private answer");
+    await until(() => f.entries.length === 1);
+    assert.equal(f.entries[0].type, "btw-result");
+    assert.equal(f.entries[0].data.answer, "private answer");
     await f.idle();
     assert.equal(f.messages.length, 0);
   } finally {

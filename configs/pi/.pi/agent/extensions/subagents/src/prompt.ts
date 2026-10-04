@@ -32,7 +32,6 @@ export const SUBAGENT_SPAWN_PARAMETER_DESCRIPTIONS = {
 export function buildSubagentSpawnResult(options: {
   id: string;
   title: string;
-  harness: string;
   modelLabel: string;
   cwd: string;
 }) {

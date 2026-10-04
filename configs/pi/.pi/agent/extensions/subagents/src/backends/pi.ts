@@ -1,6 +1,6 @@
 /** One headless Pi SDK session per task, with trust gating and no child delegation. */
 
-import type { AssistantMessage, Message, Model } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type {
   AgentSession,
   AgentSessionEvent,
@@ -13,15 +13,10 @@ import {
   SessionManager,
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
-import type { Cause, Scope } from "effect";
+import type { Cause } from "effect";
 import { Effect, Queue, Stream } from "effect";
-import type { SubagentBackend, SubagentSession } from "../backend.ts";
-import type {
-  SpawnTask,
-  SubagentEvent,
-  SubagentMeta,
-  TranscriptPart,
-} from "../domain.ts";
+import type { SpawnSession, SubagentSession } from "../backend.ts";
+import type { SubagentEvent, SubagentMeta } from "../domain.ts";
 import { SpawnError } from "../domain.ts";
 import { createToolCallTimeoutGuard } from "../tool-call-timeout.ts";
 
@@ -137,20 +132,13 @@ async function shutdownAndDisposeChildSession(session: AgentSession) {
 
 // --- Event translation ----------------------------------------------------------
 
-function messageRole(msg: unknown): Message["role"] | undefined {
-  const role = (msg as { role?: string } | undefined)?.role;
-  if (role === "user" || role === "assistant" || role === "toolResult")
-    return role;
-  return undefined;
-}
-
 function lastAssistantMessage(
   session: AgentSession,
 ): AssistantMessage | undefined {
   const messages = session.messages;
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
-    if (messageRole(msg) === "assistant") return msg as AssistantMessage;
+    if (msg.role === "assistant") return msg;
   }
   return undefined;
 }
@@ -160,8 +148,8 @@ function finalOutput(session: AgentSession): string {
   const messages = session.messages;
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
-    if (messageRole(msg) !== "assistant") continue;
-    const text = (msg as AssistantMessage).content
+    if (msg.role !== "assistant") continue;
+    const text = msg.content
       .filter((part) => part.type === "text")
       .map((part) => part.text)
       .join("\n")
@@ -171,76 +159,6 @@ function finalOutput(session: AgentSession): string {
   return "";
 }
 
-function safeJson(value: unknown): string | undefined {
-  try {
-    const text = JSON.stringify(value);
-    return text === "{}" ? undefined : text.slice(0, 4_096);
-  } catch {
-    return undefined;
-  }
-}
-
-/** First non-empty line of a tool result. */
-function toolPreview(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    return value
-      .split("\n")
-      .find((line) => line.trim())
-      ?.trim();
-  }
-  if (!value || typeof value !== "object") return undefined;
-  const content = (value as { content?: unknown }).content;
-  if (!Array.isArray(content)) return undefined;
-  for (const part of content) {
-    if (!part || typeof part !== "object") continue;
-    const record = part as { type?: unknown; text?: unknown };
-    if (record.type !== "text" || typeof record.text !== "string") continue;
-    const firstLine = record.text.split("\n").find((line) => line.trim());
-    if (firstLine) return firstLine.trim();
-  }
-  return undefined;
-}
-
-function assistantParts(msg: AssistantMessage): TranscriptPart[] {
-  const parts: TranscriptPart[] = [];
-  for (const part of msg.content) {
-    if (part.type === "text") {
-      parts.push({ type: "text", text: part.text });
-    } else if (part.type === "thinking") {
-      parts.push({
-        type: "thinking",
-        text: part.redacted ? "" : part.thinking,
-        redacted: part.redacted,
-      });
-    } else if (part.type === "toolCall") {
-      parts.push({
-        type: "toolCall",
-        toolId: part.id,
-        name: part.name,
-        argsPreview: safeJson(part.arguments),
-      });
-    }
-  }
-  return parts;
-}
-
-function userText(msg: Message): string {
-  const content = (msg as { content: unknown }).content;
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .filter(
-      (part): part is { type: "text"; text: string } =>
-        !!part &&
-        typeof part === "object" &&
-        (part as { type?: unknown }).type === "text",
-    )
-    .map((part) => part.text)
-    .join("\n");
-}
-
-// --- The session ------------------------------------------------------------------
-
 function boundedError(error: unknown) {
   return (error instanceof Error ? error.message : String(error)).slice(
     0,
@@ -248,9 +166,7 @@ function boundedError(error: unknown) {
   );
 }
 
-const makePiSession = (
-  task: SpawnTask,
-): Effect.Effect<SubagentSession, SpawnError, Scope.Scope> =>
+export const spawnPiSession: SpawnSession = (task) =>
   Effect.gen(function* () {
     const registry = task.parent.modelRegistry;
     if (!registry) {
@@ -400,72 +316,17 @@ const makePiSession = (
           if (streamEvent.type === "text_delta") {
             emit({
               _tag: "AssistantDelta",
-              kind: "text",
-              delta: streamEvent.delta,
-            });
-          } else if (streamEvent.type === "thinking_delta") {
-            emit({
-              _tag: "AssistantDelta",
-              kind: "thinking",
               delta: streamEvent.delta,
             });
           }
           break;
         }
-        case "message_end": {
-          const role = messageRole(event.message);
-          if (role === "user") {
-            const text = userText(event.message as Message);
-            if (text.trim()) emit({ _tag: "UserMessage", text });
-          } else if (role === "assistant") {
-            emit({
-              _tag: "AssistantMessage",
-              parts: assistantParts(event.message as AssistantMessage),
-            });
+        case "message_end":
+          if (event.message.role === "assistant") {
+            emit({ _tag: "AssistantMessage" });
             emitUsage();
             emit({ _tag: "MetaChanged", meta: currentMeta() });
           }
-          // toolResult messages are covered by tool_execution_end.
-          break;
-        }
-        case "tool_execution_start":
-          emit({
-            _tag: "ToolStart",
-            toolId: event.toolCallId,
-            name: event.toolName,
-            argsPreview: safeJson(event.args),
-          });
-          break;
-        case "tool_execution_update":
-          emit({
-            _tag: "ToolUpdate",
-            toolId: event.toolCallId,
-            outputPreview: toolPreview(event.partialResult),
-          });
-          break;
-        case "tool_execution_end":
-          emit({
-            _tag: "ToolEnd",
-            toolId: event.toolCallId,
-            name: event.toolName,
-            isError: event.isError,
-            outputPreview: toolPreview(event.result),
-          });
-          break;
-        case "queue_update":
-          emit({
-            _tag: "QueueChanged",
-            queued: [
-              ...event.steering.map((text) => ({
-                text,
-                kind: "steer" as const,
-              })),
-              ...event.followUp.map((text) => ({
-                text,
-                kind: "follow-up" as const,
-              })),
-            ],
-          });
           break;
         case "agent_settled":
           settle();
@@ -537,10 +398,3 @@ const makePiSession = (
       }),
     } satisfies SubagentSession;
   });
-
-export const piBackend: SubagentBackend = {
-  name: "pi",
-  // In-process SDK: always available.
-  available: Effect.succeed(true),
-  spawn: makePiSession,
-};

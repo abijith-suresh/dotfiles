@@ -1,26 +1,11 @@
-/**
- * Layer composition and the async entry-point boundary.
- *
- * Everything inside the extension is Effect generators; this module is where
- * tool handlers (plain async functions) run those effects against one shared
- * ManagedRuntime. Pi-only: only the in-process pi SDK backend is registered.
- */
-
 import { Cause, Exit, Layer, ManagedRuntime, type Effect } from "effect";
-import { BackendRegistry, type SubagentBackend } from "./backend.ts";
-import { piBackend } from "./backends/pi.ts";
-import type { BackendName } from "./domain.ts";
-
-const BackendRegistryLive = Layer.sync(BackendRegistry, () => {
-  const backends: SubagentBackend[] = [piBackend];
-  return new Map<BackendName, SubagentBackend>(
-    backends.map((backend) => [backend.name, backend]),
-  );
-});
-
+import { SubagentSpawner } from "./backend.ts";
+import { spawnPiSession } from "./backends/pi.ts";
 import { SubagentManagerLive } from "./manager.ts";
 
-const AppLayer = SubagentManagerLive.pipe(Layer.provide(BackendRegistryLive));
+const AppLayer = SubagentManagerLive.pipe(
+  Layer.provide(Layer.succeed(SubagentSpawner, spawnPiSession)),
+);
 
 export function createSubagentRuntime() {
   return ManagedRuntime.make(AppLayer);

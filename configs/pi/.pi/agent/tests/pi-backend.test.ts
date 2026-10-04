@@ -66,7 +66,7 @@ mock.module("@earendil-works/pi-coding-agent", {
     },
   },
 });
-const { piBackend } =
+const { spawnPiSession } =
   await import("../extensions/subagents/src/backends/pi.ts");
 const task = (prompt = "task") => ({
   prompt,
@@ -82,7 +82,7 @@ const task = (prompt = "task") => ({
 async function spawn(prompt = "task") {
   const scope = await Effect.runPromise(Scope.make());
   const session = await Effect.runPromise(
-    Scope.provide(piBackend.spawn(task(prompt) as any), scope),
+    Scope.provide(spawnPiSession(task(prompt) as any), scope),
   );
   return {
     session,
@@ -144,7 +144,7 @@ test("extension startup failure disposes the freshly-created SDK session", async
   const scope = await Effect.runPromise(Scope.make());
   try {
     await assert.rejects(
-      Effect.runPromise(Scope.provide(piBackend.spawn(task() as any), scope)),
+      Effect.runPromise(Scope.provide(spawnPiSession(task() as any), scope)),
       /bind failed/,
     );
     assert.equal(current.closed, 1);
@@ -160,7 +160,7 @@ test("aborted creation disposes a child that arrives after its tool was cancelle
   creationGate = gate.promise;
   try {
     const running = Effect.runPromise(
-      Scope.provide(piBackend.spawn(task() as any), scope),
+      Scope.provide(spawnPiSession(task() as any), scope),
       { signal: controller.signal },
     );
     const rejected = assert.rejects(running);
@@ -175,4 +175,95 @@ test("aborted creation disposes a child that arrives after its tool was cancelle
     gate.resolve();
     await Effect.runPromise(Scope.close(scope, Exit.void));
   }
+});
+
+test("native events retain status and final output without copying the SDK transcript", async () => {
+  const f = await spawn();
+  try {
+    const collected = Effect.runPromise(
+      Stream.runCollect(
+        f.session.events.pipe(
+          Stream.takeUntil((event) => event._tag === "RunSettled"),
+        ),
+      ),
+    );
+    current.getContextUsage = () => ({ tokens: 2048, contextWindow: 4096 });
+    const message = {
+      role: "assistant",
+      provider: "test",
+      model: "model",
+      stopReason: "stop",
+      content: [
+        { type: "thinking", thinking: "private thinking" },
+        {
+          type: "toolCall",
+          id: "tool-1",
+          name: "read",
+          arguments: { path: "file" },
+        },
+        { type: "text", text: "native answer" },
+      ],
+    };
+    current.messages.push(message);
+    for (const event of [
+      { type: "message_end", message: { role: "user", content: "task" } },
+      {
+        type: "message_update",
+        assistantMessageEvent: {
+          type: "thinking_delta",
+          delta: "private thinking",
+        },
+      },
+      {
+        type: "tool_execution_start",
+        toolCallId: "tool-1",
+        toolName: "read",
+        args: { path: "file" },
+      },
+      {
+        type: "tool_execution_update",
+        toolCallId: "tool-1",
+        partialResult: { content: [{ type: "text", text: "tool preview" }] },
+      },
+      {
+        type: "tool_execution_end",
+        toolCallId: "tool-1",
+        toolName: "read",
+        result: "tool result",
+        isError: false,
+      },
+      { type: "queue_update", steering: ["queued steering"], followUp: [] },
+      {
+        type: "message_update",
+        assistantMessageEvent: { type: "text_delta", delta: "live text" },
+      },
+      { type: "message_end", message },
+      { type: "agent_settled" },
+    ])
+      current.emit(event);
+    current.isStreaming = false;
+    const events = await collected;
+    assert.deepEqual(
+      events.filter(
+        (event) => event._tag !== "RunStarted" && event._tag !== "MetaChanged",
+      ),
+      [
+        { _tag: "AssistantDelta", delta: "live text" },
+        { _tag: "AssistantMessage" },
+        { _tag: "UsageChanged", tokens: 2048, contextWindow: 4096 },
+        {
+          _tag: "RunSettled",
+          outcome: { _tag: "Completed", finalText: "native answer" },
+        },
+      ],
+    );
+    assert.equal(
+      (await Effect.runPromise(f.session.meta)).sessionFilePath,
+      "offline-session",
+    );
+    assert.equal(current.messages[0], message);
+  } finally {
+    await f.close();
+  }
+  assert.equal(current.closed, 1);
 });

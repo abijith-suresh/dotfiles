@@ -1,13 +1,3 @@
-/**
- * SubagentManager — owns the registry of running/finished subagents.
- *
- * Each subagent is a scoped `SubagentSession` from a `SubagentBackend` plus a
- * pump fiber that folds its normalized event stream into a mutable
- * `SubagentSnapshot`. Closing a subagent's scope kills the underlying
- * Pi session and stops the pump.
- *
- */
-
 import {
   Context,
   Effect,
@@ -18,82 +8,35 @@ import {
   Scope,
   Stream,
 } from "effect";
-import type { SubagentBackend, SubagentSession } from "./backend.ts";
-import { BackendRegistry } from "./backend.ts";
+import { SubagentSpawner, type SubagentSession } from "./backend.ts";
 import type {
-  BackendName,
-  LiveToolState,
   RunOutcome,
   SpawnTask,
   SubagentEvent,
-  SubagentOrigin,
-  SubagentMeta,
   SubagentSnapshot,
   SubagentStatus,
-  TranscriptItem,
 } from "./domain.ts";
-import {
-  BackendUnavailableError,
-  ConcurrencyLimitError,
-  SpawnError,
-} from "./domain.ts";
+import { ConcurrencyLimitError, SpawnError } from "./domain.ts";
 
 export const MAX_RUNNING = 4;
 export const MAX_TRACKED = 64;
 const STOP_TIMEOUT_MS = 5_000;
 const ERROR_TEXT_MAX_LENGTH = 4_096;
-const TRANSCRIPT_TEXT_MAX_LENGTH = 64 * 1_024;
 const LIVE_ASSISTANT_MAX_LENGTH = 128 * 1_024;
 const FINAL_TEXT_MAX_LENGTH = 1_024 * 1_024;
-const MAX_TRANSCRIPT_ITEMS = 512;
 
 function bounded(text: string) {
   return text.slice(0, ERROR_TEXT_MAX_LENGTH);
 }
 
-function boundedTranscriptText(text: string) {
-  return text.slice(0, TRANSCRIPT_TEXT_MAX_LENGTH);
-}
-
-function appendTranscript(snapshot: MutableSnapshot, item: TranscriptItem) {
-  snapshot.transcript.push(item);
-  if (snapshot.transcript.length > MAX_TRANSCRIPT_ITEMS) {
-    snapshot.transcript.splice(
-      0,
-      snapshot.transcript.length - MAX_TRANSCRIPT_ITEMS,
-    );
-  }
-}
-
-// --- Internal state -----------------------------------------------------------
-
-/** Mutable snapshot; exposed to readers via the readonly SubagentSnapshot type. */
-interface MutableSnapshot {
-  id: string;
-  origin: SubagentOrigin;
-  backend: BackendName;
-  title: string;
-  prompt: string;
-  cwd: string;
-  status: SubagentStatus;
-  createdAt: number;
-  settledAt?: number;
-  errorText?: string;
-  meta: SubagentMeta;
-  usage: { tokens?: number; contextWindow?: number };
-  transcript: TranscriptItem[];
-  liveAssistant?: { text: string; thinking: string };
-  liveTools: LiveToolState[];
-  queued: SubagentSnapshot["queued"];
-  finalText: string;
-  turns: number;
-}
+type MutableSnapshot = {
+  -readonly [K in keyof SubagentSnapshot]: SubagentSnapshot[K];
+};
 
 interface Entry {
   snapshot: MutableSnapshot;
   session: SubagentSession;
   scope: Scope.Closeable;
-  liveToolMap: Map<string, LiveToolState>;
   model?: string;
   reasoningEffort?: string;
 }
@@ -118,12 +61,8 @@ export interface CancelResult {
 
 export interface SubagentManagerShape {
   spawn(
-    backend: BackendName,
     task: SpawnTask,
-  ): Effect.Effect<
-    SubagentSnapshot,
-    SpawnError | ConcurrencyLimitError | BackendUnavailableError
-  >;
+  ): Effect.Effect<SubagentSnapshot, SpawnError | ConcurrencyLimitError>;
   /**
    * Wait until all listed subagents are settled. Unknown ids are treated as
    * settled (the tool layer validates ids first). Interest prevents pruning
@@ -137,7 +76,6 @@ export interface SubagentManagerShape {
   cancel(
     ids: ReadonlyArray<string>,
   ): Effect.Effect<ReadonlyArray<CancelResult>>;
-  readonly disposeAll: Effect.Effect<void>;
   readonly view: SubagentReadModel;
 }
 
@@ -149,7 +87,7 @@ export class SubagentManager extends Context.Service<
 // --- Implementation --------------------------------------------------------------
 
 const makeManager = Effect.gen(function* () {
-  const registry = yield* BackendRegistry;
+  const spawnSession = yield* SubagentSpawner;
   // Detached forker for settlement cleanup and pruning that
   // preserves the manager's services instead of using the global runtime.
   const runDetached = Effect.runForkWith(yield* Effect.context());
@@ -249,10 +187,7 @@ const makeManager = Effect.gen(function* () {
         );
         break;
     }
-    s.liveAssistant = undefined;
-    entry.liveToolMap.clear();
-    s.liveTools = [];
-    s.queued = [];
+    s.liveText = undefined;
     notify();
     try {
       // During teardown, don't queue results into a shutting-down session.
@@ -285,85 +220,14 @@ const makeManager = Effect.gen(function* () {
       case "RunSettled":
         settle(entry, event.outcome);
         return; // settle() already notified
-      case "UserMessage":
-        appendTranscript(s, {
-          kind: "user",
-          text: boundedTranscriptText(event.text),
-        });
+      case "AssistantDelta":
+        s.liveText = ((s.liveText ?? "") + event.delta).slice(
+          -LIVE_ASSISTANT_MAX_LENGTH,
+        );
         break;
-      case "AssistantDelta": {
-        const live = s.liveAssistant ?? { text: "", thinking: "" };
-        s.liveAssistant =
-          event.kind === "text"
-            ? {
-                ...live,
-                text: (live.text + event.delta).slice(
-                  -LIVE_ASSISTANT_MAX_LENGTH,
-                ),
-              }
-            : {
-                ...live,
-                thinking: (live.thinking + event.delta).slice(
-                  -LIVE_ASSISTANT_MAX_LENGTH,
-                ),
-              };
-        break;
-      }
       case "AssistantMessage":
-        appendTranscript(s, {
-          kind: "assistant",
-          parts: event.parts.map((part) =>
-            part.type === "toolCall"
-              ? {
-                  ...part,
-                  argsPreview: part.argsPreview
-                    ? boundedTranscriptText(part.argsPreview)
-                    : undefined,
-                }
-              : { ...part, text: boundedTranscriptText(part.text) },
-          ),
-        });
-        s.liveAssistant = undefined;
+        s.liveText = undefined;
         s.turns++;
-        break;
-      case "ToolStart":
-        entry.liveToolMap.set(event.toolId, {
-          toolId: event.toolId,
-          name: event.name,
-          argsPreview: event.argsPreview
-            ? boundedTranscriptText(event.argsPreview)
-            : undefined,
-        });
-        s.liveTools = [...entry.liveToolMap.values()];
-        break;
-      case "ToolUpdate": {
-        const current = entry.liveToolMap.get(event.toolId);
-        if (current) {
-          entry.liveToolMap.set(event.toolId, {
-            ...current,
-            outputPreview: event.outputPreview
-              ? boundedTranscriptText(event.outputPreview)
-              : current.outputPreview,
-          });
-          s.liveTools = [...entry.liveToolMap.values()];
-        }
-        break;
-      }
-      case "ToolEnd":
-        entry.liveToolMap.delete(event.toolId);
-        s.liveTools = [...entry.liveToolMap.values()];
-        appendTranscript(s, {
-          kind: "toolResult",
-          toolId: event.toolId,
-          name: event.name,
-          isError: event.isError,
-          outputPreview: event.outputPreview
-            ? boundedTranscriptText(event.outputPreview)
-            : undefined,
-        });
-        break;
-      case "QueueChanged":
-        s.queued = event.queued;
         break;
       case "UsageChanged":
         s.usage = {
@@ -374,14 +238,11 @@ const makeManager = Effect.gen(function* () {
       case "MetaChanged":
         s.meta = { ...s.meta, ...event.meta };
         break;
-      case "BackendError":
-        s.errorText = bounded(event.message);
-        break;
     }
     notify();
   };
 
-  const spawn = (backendName: BackendName, task: SpawnTask) =>
+  const spawn = (task: SpawnTask) =>
     Effect.gen(function* () {
       const taskKey = JSON.stringify([
         task.origin ?? "model",
@@ -430,21 +291,8 @@ const makeManager = Effect.gen(function* () {
       );
 
       const doSpawn = Effect.gen(function* () {
-        const backend: SubagentBackend | undefined = registry.get(backendName);
-        if (!backend) {
-          return yield* new BackendUnavailableError({
-            message: `Unknown backend "${backendName}".`,
-          });
-        }
-        const available = yield* backend.available;
-        if (!available) {
-          return yield* new BackendUnavailableError({
-            message: `Backend "${backendName}" is not available on this machine (binary/SDK/credentials missing).`,
-          });
-        }
-
         const scope = yield* Scope.make();
-        const session = yield* Scope.provide(backend.spawn(task), scope).pipe(
+        const session = yield* Scope.provide(spawnSession(task), scope).pipe(
           Effect.onError(() => Scope.close(scope, Exit.void)),
         );
         if (disposed) {
@@ -462,7 +310,7 @@ const makeManager = Effect.gen(function* () {
           snapshot: {
             id,
             origin,
-            backend: backendName,
+            backend: "pi",
             title: task.title,
             prompt: task.prompt,
             cwd: task.cwd,
@@ -470,15 +318,11 @@ const makeManager = Effect.gen(function* () {
             createdAt: Date.now(),
             meta,
             usage: { contextWindow: meta.contextWindow },
-            transcript: [],
-            liveTools: [],
-            queued: [],
             finalText: "",
             turns: 0,
           },
           session,
           scope,
-          liveToolMap: new Map(),
           model: task.model,
           reasoningEffort: task.reasoningEffort,
         };
@@ -653,7 +497,6 @@ const makeManager = Effect.gen(function* () {
     spawn,
     waitFor,
     cancel,
-    disposeAll,
     view,
   });
 });
@@ -661,5 +504,5 @@ const makeManager = Effect.gen(function* () {
 export const SubagentManagerLive: Layer.Layer<
   SubagentManager,
   never,
-  BackendRegistry
+  SubagentSpawner
 > = Layer.effect(SubagentManager, makeManager);

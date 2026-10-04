@@ -1,17 +1,5 @@
-/**
- * Domain model for subagents.
- *
- * Everything downstream of the pi backend (manager and tools) speaks only these
- * types. The pi backend translates its native session events into the normalized
- * `SubagentEvent` union.
- */
-
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 import { Data } from "effect";
-
-// Pi-only — this setup only supports the in-process pi SDK backend.
-export const BACKEND_NAMES = ["pi"] as const;
-export type BackendName = (typeof BACKEND_NAMES)[number];
 
 /** Who initiated the session. User asides stay out of model-facing tooling. */
 export type SubagentOrigin = "model" | "btw";
@@ -61,7 +49,7 @@ export interface SpawnTask {
 }
 
 export interface SubagentMeta {
-  readonly backend: BackendName;
+  readonly backend: "pi";
   /** Active provider/model label. */
   readonly modelLabel?: string;
   /** Context window capacity for utilization display, when known. */
@@ -69,52 +57,6 @@ export interface SubagentMeta {
   /** pi session file for the subagent. */
   readonly sessionFilePath?: string;
 }
-
-// --- Transcript ------------------------------------------------------------
-
-export type TranscriptPart =
-  | { readonly type: "text"; readonly text: string }
-  | {
-      readonly type: "thinking";
-      readonly text: string;
-      readonly redacted?: boolean;
-    }
-  | {
-      readonly type: "toolCall";
-      readonly toolId: string;
-      readonly name: string;
-      readonly argsPreview?: string;
-    };
-
-export type TranscriptItem =
-  | { readonly kind: "user"; readonly text: string }
-  | {
-      readonly kind: "assistant";
-      readonly parts: ReadonlyArray<TranscriptPart>;
-    }
-  | {
-      readonly kind: "toolResult";
-      readonly toolId: string;
-      readonly name: string;
-      readonly isError: boolean;
-      readonly outputPreview?: string;
-    };
-
-export interface LiveToolState {
-  readonly toolId: string;
-  readonly name: string;
-  readonly argsPreview?: string;
-  readonly outputPreview?: string;
-  readonly done?: boolean;
-  readonly isError?: boolean;
-}
-
-export interface QueuedMessage {
-  readonly text: string;
-  readonly kind: "steer" | "follow-up";
-}
-
-// --- Events ------------------------------------------------------------------
 
 export type RunOutcome =
   | { readonly _tag: "Completed"; readonly finalText: string }
@@ -125,56 +67,18 @@ export type RunOutcome =
     }
   | { readonly _tag: "Interrupted"; readonly partialText?: string };
 
-/**
- * Normalized activity stream. Previews (`argsPreview`, `outputPreview`) are
- * bounded strings for nonblocking status previews.
- */
+/** Events needed by status tools and result delivery. Pi persists the full transcript. */
 export type SubagentEvent =
-  // lifecycle (one task per session)
   | { readonly _tag: "RunStarted" }
   | { readonly _tag: "RunSettled"; readonly outcome: RunOutcome }
-  // transcript building blocks
-  | { readonly _tag: "UserMessage"; readonly text: string }
-  | {
-      readonly _tag: "AssistantDelta";
-      readonly kind: "text" | "thinking";
-      readonly delta: string;
-    }
-  | {
-      readonly _tag: "AssistantMessage";
-      readonly parts: ReadonlyArray<TranscriptPart>;
-    }
-  | {
-      readonly _tag: "ToolStart";
-      readonly toolId: string;
-      readonly name: string;
-      readonly argsPreview?: string;
-    }
-  | {
-      readonly _tag: "ToolUpdate";
-      readonly toolId: string;
-      readonly outputPreview?: string;
-    }
-  | {
-      readonly _tag: "ToolEnd";
-      readonly toolId: string;
-      readonly name: string;
-      readonly isError: boolean;
-      readonly outputPreview?: string;
-    }
-  // bookkeeping
-  | {
-      readonly _tag: "QueueChanged";
-      readonly queued: ReadonlyArray<QueuedMessage>;
-    }
+  | { readonly _tag: "AssistantDelta"; readonly delta: string }
+  | { readonly _tag: "AssistantMessage" }
   | {
       readonly _tag: "UsageChanged";
       readonly tokens?: number;
       readonly contextWindow?: number;
     }
-  | { readonly _tag: "MetaChanged"; readonly meta: Partial<SubagentMeta> }
-  /** Non-fatal diagnostics. Fatal failures arrive as a RunSettled outcome. */
-  | { readonly _tag: "BackendError"; readonly message: string };
+  | { readonly _tag: "MetaChanged"; readonly meta: Partial<SubagentMeta> };
 
 // --- Snapshot ---------------------------------------------------------------
 
@@ -185,7 +89,7 @@ export type SubagentEvent =
 export interface SubagentSnapshot {
   readonly id: string;
   readonly origin: SubagentOrigin;
-  readonly backend: BackendName;
+  readonly backend: "pi";
   readonly title: string;
   readonly prompt: string;
   readonly cwd: string;
@@ -195,20 +99,17 @@ export interface SubagentSnapshot {
   readonly errorText?: string;
   readonly meta: SubagentMeta;
   readonly usage: { readonly tokens?: number; readonly contextWindow?: number };
-  readonly transcript: ReadonlyArray<TranscriptItem>;
-  /** Streaming assistant buffers, cleared when the finalized message lands. */
-  readonly liveAssistant?: { readonly text: string; readonly thinking: string };
-  readonly liveTools: ReadonlyArray<LiveToolState>;
-  readonly queued: ReadonlyArray<QueuedMessage>;
-  /** Final text of the most recent completed run . */
+  /** Streaming text, cleared when the finalized message lands. */
+  readonly liveText?: string;
+  /** Final text of the most recent completed run. */
   readonly finalText: string;
   /** Count of finalized assistant messages (for subagent_check). */
   readonly turns: number;
 }
 
-/** Final text, or the live streaming buffer while a run is active . */
+/** Final text, or the live streaming buffer while a run is active. */
 export function latestText(snap: SubagentSnapshot) {
-  const live = snap.liveAssistant?.text.trim();
+  const live = snap.liveText?.trim();
   if (live) return live;
   return snap.finalText;
 }
@@ -226,12 +127,6 @@ export function formatElapsed(snap: SubagentSnapshot) {
 // --- Errors -------------------------------------------------------------------
 
 export class SpawnError extends Data.TaggedError("SpawnError")<{
-  readonly message: string;
-}> {}
-
-export class BackendUnavailableError extends Data.TaggedError(
-  "BackendUnavailableError",
-)<{
   readonly message: string;
 }> {}
 
