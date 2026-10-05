@@ -74,5 +74,6 @@ section "Configuration"
 # shellcheck disable=SC1090,SC1091
 source "$DOTFILES_DIR/install/stow.sh"
 stow_all
+run_tolerant_script "Tangent" "$DOTFILES_DIR/install/apps/agents/tangent.sh"
 
 print_final_summary

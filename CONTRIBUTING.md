@@ -29,21 +29,17 @@ backups, and preservation of existing Pi and Codex settings and auth files.
 Run `scripts/test-pi-installer.sh` after Pi installer changes. There is no GitHub
 Actions workflow, so these checks run locally.
 
-Pi extension development uses Node 24 or newer. Install the development tools
-in the checkout, then typecheck and run the offline behavior tests:
+Pi customizations are developed in [Tangent](https://github.com/abijith-suresh/tangent).
+This repository keeps the release pin and installer. To also check a real Pi
+installation in temporary homes, point the installer test at an installed SDK:
 
 ```bash
-npm ci --ignore-scripts
-npm run check:pi
-npm run test:pi
-npm run format:check
-PI_TEST_RUNTIME="$PWD/node_modules/@earendil-works/pi-coding-agent" scripts/test-pi-installer.sh
+PI_TEST_RUNTIME="$HOME/.local/lib/node_modules/@earendil-works/pi-coding-agent" scripts/test-pi-installer.sh
 ```
 
-Tests and development dependencies stay outside `configs/`. The SDK in the
-lockfile is used for development only; installation still uses Pi's latest
-stable CLI. The last command checks discovery through that SDK in a fresh
-Stow home with no extension dependency install.
+The integration check downloads the pinned Tangent tag and verifies native
+package registration, theme discovery, repeat installation, and preservation
+of existing settings. It does not use credentials or call a model.
 
 ## Formatting
 

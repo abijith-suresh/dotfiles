@@ -65,10 +65,15 @@ reasoning settings. Fresh installs do not configure MCP servers; existing owned
 Codex settings retain their local MCP blocks. Railway uses its
 [official CLI](https://docs.railway.com/cli).
 
-`install.sh` updates Pi to the latest stable npm release. Pi loads the local
-TypeScript extensions directly through its SDK, without an extension dependency
-install. The [Pi subagent guide](configs/pi/.pi/agent/skills/subagents/SKILL.md) covers
-foreground and background tasks. `ask_user` accepts related questions together.
+`install.sh` updates Pi to the latest stable npm release, then installs
+[Tangent](https://github.com/abijith-suresh/tangent) through Pi's native package
+manager after Stow. The tagged source in `configs/pi/.pi/agent/settings.json`
+is the version to install, currently `0.0.1`. Tangent contains only the
+Catppuccin Mocha theme. Fresh installs select it; existing installs keep their
+selected theme and all other settings while Pi registers Tangent. Pi's package
+checkout stays in its native directory. Future Tangent updates require changing
+the tracked tag.
+
 OpenCode installs from the official v2 channel, upgrades existing v1 installs,
 and leaves v2 installs alone.
 

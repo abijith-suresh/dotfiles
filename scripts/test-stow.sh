@@ -57,7 +57,8 @@ grep -q 'Keeping existing ~/.codex/config.toml' "$test_root/owned-output"
 grep -q 'Keeping existing ~/.pi/agent/settings.json' "$test_root/owned-output"
 grep -qx 'codex-auth' "$clean_home/.codex/auth.json"
 grep -qx 'pi-auth' "$clean_home/.pi/agent/auth.json"
-assert_link "$clean_home/.pi/agent/themes/catppuccin-mocha.json" "$REPO_DIR/configs/pi/.pi/agent/themes/catppuccin-mocha.json"
+[ ! -e "$clean_home/.pi/agent/themes" ]
+[ ! -e "$clean_home/.pi/agent/extensions" ]
 assert_no_backups "$clean_home"
 
 # Existing owned settings on the first run are also preserved. Other conflicts
