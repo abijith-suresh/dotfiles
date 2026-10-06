@@ -1,77 +1,84 @@
 # Dotfiles
 
-Personal, opinionated terminal setup for my machines.
+My terminal setup for WSL Ubuntu, Ubuntu, and Debian. `install.sh` installs tools
+and deploys the configuration in `configs/` with GNU Stow. The theme is Catppuccin
+Mocha.
 
-This repo exists to make a fresh machine feel like mine quickly. It installs the tools I use, then deploys the tracked config under `configs/` with GNU Stow.
-
-Running `install.sh` also updates Pi to the latest stable npm release. Its extensions share one lockfile and typecheck against that installed CLI. The [Pi subagent guide](configs/pi/.pi/agent/skills/subagents/SKILL.md) covers foreground and background tasks; `ask_user` accepts related questions together.
-
-OpenCode installs from the official v2 release channel. An existing v1 install is migrated in place; a v2 install is left alone.
-
-Pi and Codex settings are stowed at `~/.pi/agent/settings.json` and `~/.codex/config.toml` on fresh installs. Their native state directories stay in place, so no credentials need to move. Existing settings that are not linked to this checkout stay active, including files a CLI creates by replacing its symlink. The installer reports these files and deploys the rest of their package.
-
-Changes through a settings symlink can dirty the checkout. Review the diff before committing and keep auth, project trust, runtime state, and model defaults out of Git. There is no runtime refresh command. To use tracked settings in place of an owned file, first review and save that file yourself, then remove the live path and rerun `install.sh`. The installer stops if a parent symlink blocks deployment of preserved settings.
-
-Agent configs contain no default model or reasoning settings. Railway installs only its [official CLI](https://docs.railway.com/cli); fresh installs do not configure MCP servers. Existing owned Codex settings, including local MCP blocks, stay untouched.
+Fedora and Arch support is experimental. macOS is untested.
 
 ## Install
-
-On Linux, WSL Ubuntu, Ubuntu, or Debian:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/main/boot.sh)"
 ```
 
-Test a branch:
+To test an existing branch, replace `your-branch-name` below:
 
 ```bash
 DOTFILES_REF=your-branch-name bash -c "$(curl -fsSL https://raw.githubusercontent.com/abijith-suresh/dotfiles/main/boot.sh)"
 ```
 
-Replace `your-branch-name` with a branch that exists in this repository.
-
-Bootstrap updates with a fast-forward pull and disables autostash. If local config changes conflict with an update, it stops before installation. Review and resolve those changes yourself, then rerun bootstrap.
-
-Local checkout:
+Or install from a local checkout:
 
 ```bash
 git clone https://github.com/abijith-suresh/dotfiles.git ~/.dotfiles
 ~/.dotfiles/install.sh
 ```
 
-## Platform status
+Bootstrap pulls with `--ff-only` and disables autostash. If local changes conflict
+with an update, resolve them and rerun bootstrap.
 
-- Supported: WSL Ubuntu, Ubuntu, Debian
-- Experimental: Fedora, Arch
-- Untested: macOS
+## Configuration and backups
 
-## What it does
+The installer sets up terminal tools, coding agents, language runtimes, Vim,
+Neovim, zsh plugins, Starship, and tmux plugins. It stows the packages in
+`configs/` and backs up conflicting unmanaged files beside their original paths.
 
-- Installs terminal tools, TUIs, coding agents, language runtimes, and editor tooling I use.
-- Installs `zsh`, explicit zsh plugins, Starship, tmux plugins, Vim Catppuccin, and Neovim config.
-- Stows tracked config packages from `configs/`.
-- Backs up unmanaged config conflicts next to the original file before stowing repo config.
+Zsh loads `~/.config/zsh/.zshenv` for shared environment definitions. History uses
+`~/.local/state`; caches use `~/.cache`. The zsh rc also reads a regular
+`~/.zshrc` for additions from third-party installers, with guards against symlinks,
+same-file links, and recursive sourcing. Stow does not manage `~/.zshrc`.
 
-Zsh keeps shared environment definitions in `~/.config/zsh/.zshenv`. Shell history and caches use `~/.local/state` and `~/.cache`; configs for tools with XDG support use `~/.config`. The XDG rc also sources an existing regular `~/.zshrc`, so additions from third-party installers still load. It skips symlinks and same-file links and guards recursive sourcing. Stow does not manage `~/.zshrc`.
-
-If backups are created during install, clean them later with:
+Review install backups, then remove them with:
 
 ```bash
 ~/.dotfiles/scripts/clean-backups.sh --dry-run
 ~/.dotfiles/scripts/clean-backups.sh --yes
 ```
 
+## Agent settings
+
+Fresh installs stow Pi settings at `~/.pi/agent/settings.json` and Codex settings
+at `~/.codex/config.toml`. Existing settings that do not resolve to this checkout
+stay active, including files a CLI creates by replacing a symlink. The installer
+reports them and deploys the other files in the package. It stops if a parent
+symlink blocks deployment of preserved settings.
+
+To replace an owned settings file with tracked settings, review and save it,
+remove the live path, then rerun `install.sh`. Agent state stays in native
+directories, so credentials do not need to move.
+
+A CLI can write through a settings symlink and dirty the checkout. Review diffs
+before committing. Keep credentials, project trust, runtime state, and model
+defaults out of Git. Tracked agent configs do not select a default model or
+reasoning settings. Fresh installs do not configure MCP servers; existing owned
+Codex settings retain their local MCP blocks. Railway uses its
+[official CLI](https://docs.railway.com/cli).
+
+`install.sh` updates Pi to the latest stable npm release, then installs
+[Tangent](https://github.com/abijith-suresh/tangent) through Pi's native package
+manager after Stow. The tagged source in `configs/pi/.pi/agent/settings.json`
+is the version to install, currently `0.0.1`. Tangent contains only the
+Catppuccin Mocha theme. Fresh installs select it; existing installs keep their
+selected theme and all other settings while Pi registers Tangent. Pi's package
+checkout stays in its native directory. Future Tangent updates require changing
+the tracked tag.
+
+OpenCode installs from the official v2 channel, upgrades existing v1 installs,
+and leaves v2 installs alone.
+
 ## Development
 
-Repo validation:
-
-```bash
-~/.dotfiles/scripts/validate.sh
-~/.dotfiles/scripts/test-stow.sh
-```
-
-Repository guidance:
-
-- [AGENTS.md](AGENTS.md) has agent rules and repository invariants.
-- [CONTRIBUTING.md](CONTRIBUTING.md) describes the development workflow.
-- [docs/t3-code.md](docs/t3-code.md) describes the T3 Code setup.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands and the workflow,
+[AGENTS.md](AGENTS.md) for repository rules, and
+[docs/t3-code.md](docs/t3-code.md) for T3 Code setup.

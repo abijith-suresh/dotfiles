@@ -54,14 +54,6 @@ package_target_dirs() {
   )
 }
 
-is_stow_link_for_source() {
-  local target="$1"
-  local source="$2"
-
-  [ -L "$target" ] || return 1
-  [ "$(readlink -f "$target")" = "$(readlink -f "$source")" ]
-}
-
 path_resolves_to_source() {
   local target="$1"
   local source="$2"
@@ -111,29 +103,14 @@ backup_unmanaged_target() {
     return
   fi
 
-  backup="$(next_backup_path "$target")"
-  mkdir -p "$(dirname "$backup")"
-  mv "$target" "$backup"
-  record_config_backup "$target" "$backup"
-}
-
-backup_entry_conflict() {
-  local target="$1"
-  local source="$2"
-
-  if [ ! -e "$target" ] && [ ! -L "$target" ]; then
-    return
-  fi
-
-  if path_resolves_to_source "$target" "$source"; then
-    return
-  fi
-
   if [ -d "$source" ] && [ -d "$target" ] && [ ! -L "$target" ]; then
     return
   fi
 
-  backup_unmanaged_target "$target" "$source"
+  backup="$(next_backup_path "$target")"
+  mkdir -p "$(dirname "$backup")"
+  mv "$target" "$backup"
+  record_config_backup "$target" "$backup"
 }
 
 backup_blocking_parent_dirs() {
@@ -174,7 +151,7 @@ backup_package_conflicts() {
     [ "$rel" != "$keep" ] || continue
     source="$package_dir/$rel"
     target="$HOME/$rel"
-    backup_entry_conflict "$target" "$source"
+    backup_unmanaged_target "$target" "$source"
   done < <(package_entries "$package_dir")
 }
 

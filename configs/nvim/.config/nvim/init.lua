@@ -2,84 +2,38 @@ require("core.options")
 require("core.keymaps")
 require("core.snippets")
 
--- Short helper for GitHub sources
-local gh = function(repo)
+local function gh(repo)
   return "https://github.com/" .. repo
 end
 
--- Install and load plugins via vim.pack
 vim.pack.add({
-  -- Theme
   { src = gh("catppuccin/nvim"), name = "catppuccin" },
-
-  -- Fuzzy finder
   gh("nvim-telescope/telescope.nvim"),
   { src = gh("nvim-telescope/telescope-fzf-native.nvim"), name = "telescope-fzf-native.nvim" },
   gh("nvim-telescope/telescope-ui-select.nvim"),
-
-  -- Syntax & textobjects
   gh("nvim-treesitter/nvim-treesitter"),
   gh("nvim-treesitter/nvim-treesitter-textobjects"),
-
-  -- LSP
   gh("neovim/nvim-lspconfig"),
-
-  -- Git
   gh("lewis6991/gitsigns.nvim"),
-
-  -- Statusline
   gh("nvim-lualine/lualine.nvim"),
-
-  -- File explorer
   { src = gh("nvim-neo-tree/neo-tree.nvim"), name = "neo-tree" },
-
-  -- Directory editing
   gh("stevearc/oil.nvim"),
-
-  -- Indent guides
   gh("lukas-reineke/indent-blankline.nvim"),
-
-  -- Keymap discovery
   gh("folke/which-key.nvim"),
-
-  -- Surround editing
   gh("tpope/vim-surround"),
-
-  -- Commenting
   gh("numToStr/Comment.nvim"),
-
-  -- Autopairs
   gh("windwp/nvim-autopairs"),
-
-  -- Todo highlighting
   { src = gh("folke/todo-comments.nvim"), name = "todo-comments.nvim" },
-
-  -- Quick file switching
   { src = gh("ThePrimeagen/harpoon"), name = "harpoon", version = "harpoon2" },
-
-  -- LazyGit integration
   gh("kdheepak/lazygit.nvim"),
-
-  -- Markdown rendering
   gh("MeanderingProgrammer/render-markdown.nvim"),
-
-  -- Tmux navigation
   gh("christoomey/vim-tmux-navigator"),
-
-  -- Icons
   gh("nvim-tree/nvim-web-devicons"),
-
-  -- UI select
   gh("nvim-lua/plenary.nvim"),
-
-  -- UI components
   gh("MunifTanjim/nui.nvim"),
-
-  -- LSP progress
   { src = gh("j-hui/fidget.nvim"), name = "fidget.nvim" },
 })
 
--- Configure plugins
 require("plugins.colorscheme")
 require("plugins.telescope")
 require("plugins.treesitter")
@@ -96,9 +50,7 @@ require("plugins.harpoon")
 require("plugins.lazygit")
 require("plugins.render-markdown")
 
--- LSP server configs & enable
--- Servers with configs provided by nvim-lspconfig's lsp/ directory
--- only need vim.lsp.enable() — no custom cmd/filetype/root_markers needed
+-- Server definitions come from nvim-lspconfig. Configure lua_ls below for editing this config.
 vim.lsp.enable("lua_ls")
 vim.lsp.enable("pyright")
 vim.lsp.enable("ruff")
@@ -171,7 +123,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
     if client and client:supports_method("textDocument/inlayHint") then
       vim.keymap.set("n", "<leader>th", function()
         vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
-      end, { buffer = event.buf, desc = "[T]oggle Inlay [H]ints" })
+      end, { buffer = event.buf, desc = "Toggle inlay hints" })
     end
   end,
 })
