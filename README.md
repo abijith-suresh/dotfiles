@@ -30,9 +30,10 @@ with an update, resolve them and rerun bootstrap.
 
 ## Configuration and backups
 
-The installer sets up terminal tools, coding agents, language runtimes, Vim,
-Neovim, zsh plugins, Starship, and tmux plugins. It stows the packages in
-`configs/` and backs up conflicting unmanaged files beside their original paths.
+The installer sets up terminal tools, language runtimes, Vim, Neovim, zsh
+plugins, Starship, and tmux plugins, and installs coding agents without managing
+their configuration. It stows the packages in `configs/` and backs up conflicting
+unmanaged files beside their original paths.
 
 Zsh loads `~/.config/zsh/.zshenv` for shared environment definitions. History uses
 `~/.local/state`; caches use `~/.cache`. The zsh rc also reads a regular
@@ -46,33 +47,20 @@ Review install backups, then remove them with:
 ~/.dotfiles/scripts/clean-backups.sh --yes
 ```
 
-## Agent settings
+## Coding agents
 
-Fresh installs stow Pi settings at `~/.pi/agent/settings.json` and Codex settings
-at `~/.codex/config.toml`. Existing settings that do not resolve to this checkout
-stay active, including files a CLI creates by replacing a symlink. The installer
-reports them and deploys the other files in the package. It stops if a parent
-symlink blocks deployment of preserved settings.
-
-To replace an owned settings file with tracked settings, review and save it,
-remove the live path, then rerun `install.sh`. Agent state stays in native
-directories, so credentials do not need to move.
-
-A CLI can write through a settings symlink and dirty the checkout. Review diffs
-before committing. Keep credentials, project trust, runtime state, and model
-defaults out of Git. Tracked agent configs do not select a default model or
-reasoning settings. Fresh installs do not configure MCP servers; existing owned
-Codex settings retain their local MCP blocks. Railway uses its
+`install.sh` installs the agent CLIs and leaves their configuration alone. Each
+CLI keeps its own native state directory; this repository does not stow agent
+settings. Fresh installs do not configure MCP servers. Railway uses its
 [official CLI](https://docs.railway.com/cli).
 
-`install.sh` updates Pi to the latest stable npm release, then installs
+After installing Pi, `install.sh` installs
 [Tangent](https://github.com/abijith-suresh/tangent) through Pi's native package
-manager after Stow. The tagged source in `configs/pi/.pi/agent/settings.json`
-is the version to install, currently `0.0.1`. Tangent contains only the
-Catppuccin Mocha theme. Fresh installs select it; existing installs keep their
-selected theme and all other settings while Pi registers Tangent. Pi's package
-checkout stays in its native directory. Future Tangent updates require changing
-the tracked tag.
+manager. The tagged source in `install/apps/agents/tangent.sh` is the version to
+install, currently `0.0.1`. Tangent contains only the Catppuccin Mocha theme;
+fresh Pi installs start on Pi's default theme. Pi's package checkout stays in its
+native directory. Future Tangent updates require changing the tag in the
+installer.
 
 OpenCode installs from the official v2 channel, upgrades existing v1 installs,
 and leaves v2 installs alone.
@@ -80,5 +68,4 @@ and leaves v2 installs alone.
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands and the workflow,
-[AGENTS.md](AGENTS.md) for repository rules, and
-[docs/t3-code.md](docs/t3-code.md) for T3 Code setup.
+and [AGENTS.md](AGENTS.md) for repository rules.
