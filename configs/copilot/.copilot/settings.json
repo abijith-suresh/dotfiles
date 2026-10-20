@@ -1,8 +1,0 @@
-{
-  "askUser": true,
-  "autoUpdate": true,
-  "respectGitignore": true,
-  "permissions": {
-    "disableBypassPermissionsMode": "disable"
-  }
-}

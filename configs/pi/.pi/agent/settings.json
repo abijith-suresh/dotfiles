@@ -1,6 +1,0 @@
-{
-  "theme": "catppuccin-mocha",
-  "packages": [
-    "git:github.com/abijith-suresh/tangent@0.0.1"
-  ]
-}
