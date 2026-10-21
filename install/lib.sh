@@ -215,41 +215,25 @@ run_required_script() {
   ok "$label"
 }
 
-run_tolerant_script() {
-  local label="$1"
-  local script="$2"
-  info "$label"
-  if [ ! -f "$script" ]; then
-    warn "$label failed: missing install script: $script"
-    INSTALL_FAILURES+=("$label")
-    return 1
-  fi
-  if bash "$script"; then
-    ok "$label"
-  else
-    warn "$label failed"
-    INSTALL_FAILURES+=("$label")
-  fi
-}
-
 # Package name for source=pkg records: an exact "$PKG_MANAGER:name" token
-# wins, then a bare name, then a "*:name" fallback.
+# wins, then a bare name, then a "*:name" fallback, then the app name.
 pkg_name_for() {
   local app="$1"
   local spec="${APP_PKG[$app]:-$app}"
-  local default="$app"
   local exact=""
+  local bare=""
+  local wild=""
   local part
   while IFS= read -r part; do
     [ -n "$part" ] || continue
     case "$part" in
       "$PKG_MANAGER":*) exact="${part#*:}" ;;
-      '*':*) default="${part#*:}" ;;
+      '*':*) wild="${part#*:}" ;;
       *:*) ;;
-      *) default="$part" ;;
+      *) bare="$part" ;;
     esac
   done < <(tr '|' '\n' <<<"$spec")
-  printf '%s\n' "${exact:-$default}"
+  printf '%s\n' "${exact:-${bare:-${wild:-$app}}}"
 }
 
 apply_fixlink() {
@@ -267,8 +251,10 @@ apply_fixlink() {
 
 run_pkg_app() {
   local app="$1"
-  pkg_install "$(pkg_name_for "$app")"
-  apply_fixlink "$app"
+  local status=0
+  pkg_install "$(pkg_name_for "$app")" || status=1
+  apply_fixlink "$app" || status=1
+  return "$status"
 }
 
 # Script path (relative to install/) for source=script records. An explicit
@@ -289,38 +275,51 @@ script_rel_for() {
 
 run_app() {
   local app="$1"
+  local status=0
+  info "$app"
+
   if [ "${APP_SOURCE[$app]:-pkg}" = "pkg" ]; then
-    info "$app"
-    if run_pkg_app "$app"; then
-      ok "$app"
+    run_pkg_app "$app" || status=1
+  else
+    local script
+    script="$DOTFILES_DIR/install/$(script_rel_for "$app")"
+    if [ ! -f "$script" ]; then
+      warn "$app: missing install script: $script"
+      status=1
     else
-      warn "$app failed"
-      INSTALL_FAILURES+=("$app")
+      bash "$script" || status=1
     fi
-    return
   fi
 
-  local script
-  script="$DOTFILES_DIR/install/$(script_rel_for "$app")"
-  if [ "${APP_MODE[$app]:-tolerant}" = "required" ]; then
-    run_required_script "$app" "$script"
+  if [ "$status" -eq 0 ]; then
+    ok "$app"
+  elif [ "${APP_MODE[$app]:-tolerant}" = "required" ]; then
+    die "$app failed"
   else
-    run_tolerant_script "$app" "$script"
+    warn "$app failed"
+    INSTALL_FAILURES+=("$app")
   fi
 }
 
 verify_all() {
   section "Verifying installed state"
-  local app snippet
+  local app snippet bin
   for app in "${APP_ORDER[@]}"; do
     snippet="${APP_VERIFY[$app]:-}"
     if [ "$snippet" = "none" ]; then
       continue
     fi
-    if [ -z "$snippet" ]; then
-      snippet="command -v '${APP_BIN[$app]:-$app}' >/dev/null 2>&1"
+    if [ -n "$snippet" ]; then
+      if bash -c "$snippet" >/dev/null 2>&1; then
+        ok "verify $app"
+      else
+        warn "verify $app failed"
+        INSTALL_FAILURES+=("verify $app")
+      fi
+      continue
     fi
-    if bash -c "$snippet" >/dev/null 2>&1; then
+    bin="${APP_BIN[$app]:-$app}"
+    if command -v "$bin" >/dev/null 2>&1; then
       ok "verify $app"
     else
       warn "verify $app failed"

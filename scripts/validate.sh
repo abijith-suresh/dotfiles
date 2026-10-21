@@ -111,7 +111,7 @@ check_manifest() {
     esac
     if [ -n "${APP_NEEDS[$app]:-}" ]; then
       local needs
-      IFS=',' read -r -a needs <<<"${APP_NEEDS[$app]}"
+      IFS=',' read -r -a needs <<<"$(printf '%s' "${APP_NEEDS[$app]}" | tr -d '[:space:]')"
       for need in "${needs[@]}"; do
         [ -n "$need" ] || continue
         if [ -z "${APP_PHASE[$need]+x}" ]; then
@@ -137,12 +137,13 @@ check_manifest() {
     fi
   done
 
-  # Every installer script must be referenced by some record.
+  # Every installer script must be referenced by a scripted record.
   local file rel found script_rel
-  while IFS= read -r file; do
+  while IFS= read -r -d '' file; do
     rel="${file#install/}"
     found=0
     for app in "${APP_ORDER[@]}"; do
+      [ "${APP_SOURCE[$app]:-pkg}" = "script" ] || continue
       script_rel="$(script_rel_for "$app")" || script_rel="${APP_SCRIPT[$app]}"
       [ "$script_rel" = "$rel" ] && found=1
     done
@@ -171,10 +172,18 @@ check_manifest() {
           status=1
         fi
         expect_idx=$((expect_idx + 1))
+      else
+        printf 'phase %s re-enters after the full PHASE_ORDER ran\n' "$phase" >&2
+        status=1
       fi
       prev="$phase"
     fi
   done
+
+  [ "$expect_idx" -eq "${#PHASE_ORDER[@]}" ] || {
+    printf 'phase blocks must cover PHASE_ORDER exactly once each\n' >&2
+    status=1
+  }
 
   return "$status"
 }
@@ -202,13 +211,14 @@ check_stow_package_list() {
 # cross-package collisions a per-package loop cannot see. The isolated
 # HOME also keeps a user's own ~/.stowrc out of the result.
 check_stow_tmp_home() {
-  local tmp_home
+  local tmp_home status=0
   tmp_home="$(mktemp -d)"
   (
     cd "$ROOT/configs"
     HOME="$tmp_home" stow --dir . --target "$tmp_home" -n --no-folding "${STOW_PACKAGES[@]}"
-  ) >/dev/null
+  ) >/dev/null || status=1
   rm -rf "$tmp_home"
+  return "$status"
 }
 
 check_policy() {
@@ -251,10 +261,11 @@ check_policy() {
 
 check_secrets() {
   local status=0
-  local file
+  local file base
   while IFS= read -r file; do
-    case "$file" in
-      */auth.json | *.env | .env* | *.key | *.pem | *token* | *secret* | *credential*)
+    base="${file##*/}"
+    case "$base" in
+      auth.json | *.env | .env* | *.key | *.pem | *token* | *secret* | *credential*)
         printf 'tracked secret-shaped file: %s\n' "$file" >&2
         status=1
         ;;

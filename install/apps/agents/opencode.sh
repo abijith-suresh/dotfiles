@@ -16,8 +16,15 @@ source "${DOTFILES_DIR:?}/install/lib.sh"
 # a stale v1 package.
 
 # Detect an existing install so a v1 binary is migrated rather than skipped.
+# The v2 native location is ~/.opencode/bin/opencode; it is not on the
+# installer shell's PATH (the zsh package owns interactive PATH), so the
+# installer shell must check the native path and expose the binary through
+# ~/.local/bin for scripts and end-state verification.
+native_bin="$HOME/.opencode/bin/opencode"
 installed=""
-if command -v opencode >/dev/null 2>&1; then
+if [ -x "$native_bin" ]; then
+  installed="$("$native_bin" --version 2>/dev/null | head -n1 || true)"
+elif command -v opencode >/dev/null 2>&1; then
   installed="$(opencode --version 2>/dev/null | head -n1 || true)"
 fi
 
@@ -28,6 +35,11 @@ fi
 
 if [[ -n "$major" ]] && ((major >= 2)); then
   info "opencode v2 already installed (${installed})"
+  if [ -x "$native_bin" ] && [ ! -e "$HOME/.local/bin/opencode" ]; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$native_bin" "$HOME/.local/bin/opencode"
+    info "opencode exposed at ~/.local/bin/opencode"
+  fi
   exit 0
 fi
 
@@ -43,3 +55,11 @@ case "$PKG_MANAGER" in
     curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
     ;;
 esac
+
+# Expose the v2 native binary on the installer PATH; repeat runs also
+# refresh a stale link.
+if [ -x "$native_bin" ]; then
+  mkdir -p "$HOME/.local/bin"
+  ln -sfn "$native_bin" "$HOME/.local/bin/opencode"
+  info "opencode exposed at ~/.local/bin/opencode"
+fi

@@ -1,6 +1,10 @@
 # App inventory. install.sh is a dumb iterator over these records; scripts
 # under install/ exist only for installs with real logic. Add an app by
-# appending one register call, then run scripts/validate.sh.
+# inserting one register call into its phase block, then run
+# scripts/validate.sh.
+# Verify snippets intentionally defer expansion: they run inside the
+# end-state verification shell, not here.
+# shellcheck disable=SC2016
 #
 #   register <name> phase=... mode=... source=... [fields...]
 #
@@ -16,7 +20,9 @@
 #            "apt:fd-find|*:fd". A bare token applies everywhere.
 #   fixlink= distro-binary:target — symlink into ~/.local/bin when the
 #            distro ships the binary under another name (batcat, fdfind).
-#   script=  path under install/ for source=script (default apps/cli/<name>.sh)
+#   script=  path under install/ for source=script. Default derives from
+#            the phase: apps/cli/<name>.sh, apps/agents/<name>.sh, or
+#            languages/<name>.sh.
 #   bin=     executable used by the default end-state verification
 #            (defaults to <name>; only needed when it differs)
 #   verify=  shell snippet proving the installed state; overrides the
@@ -43,6 +49,12 @@ register() {
   local kv key value
   APP_ORDER+=("$name")
   for kv in "$@"; do
+    case "$kv" in
+      *=*) ;;
+      *)
+        die "register $name: field without value: $kv"
+        ;;
+    esac
     key="${kv%%=*}"
     value="${kv#*=}"
     case "$key" in
@@ -112,7 +124,8 @@ register vim phase=cli source=script \
 register zellij phase=cli source=script \
   docs=https://zellij.dev/documentation/installation.html
 register zsh-plugins phase=cli source=script \
-  docs=https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md
+  docs=https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md \
+  verify='test -f "$HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" && test -f "$HOME/.local/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"'
 register zoxide phase=cli source=script \
   docs=https://github.com/ajeetdsouza/zoxide
 

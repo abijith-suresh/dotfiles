@@ -26,29 +26,25 @@ STOW_PACKAGES=(
   zsh
 )
 
-# The one ignore policy lives in configs/ignore as POSIX ERE, matched
-# unanchored against every stowed path - the same semantics Stow applies
-# to its .stowrc ignore rules. .stowrc and the managed .gitignore block
-# are generated from that file by scripts/sync-ignore.sh.
-ignore_regex() {
-  local file="$DOTFILES_DIR/configs/ignore"
-  [ -f "$file" ] || die "Missing ignore policy: $file"
-  grep -vE '^[[:space:]]*(#|$)' "$file"
-}
-
+# The one ignore policy lives in configs/ignore; configs/.stowrc is
+# generated from it by scripts/sync-ignore.sh and Stow applies it natively.
+# Deployable entries are read from Stow's own simulation against an empty
+# reference home, so there is no second implementation of the ignore rules
+# to keep in sync.
 package_entries() {
   local package_dir="$1"
-  local combined
-  combined="$(ignore_regex | paste -sd '|' -)"
+  local package ref_home
+  package="$(basename "$package_dir")"
+  [ -d "$package_dir" ] || die "Missing Stow package: $package"
+
+  ref_home="$(mktemp -d)"
   (
-    cd "$package_dir"
-    if [ -n "$combined" ]; then
-      find . -mindepth 1 \( -type f -o -type l \) -print |
-        grep -Ev "$combined" || true
-    else
-      find . -mindepth 1 \( -type f -o -type l \) -print
-    fi
+    cd "$DOTFILES_DIR/configs"
+    # Stow prints its plan (LINK lines) on stderr; keep it in the pipe.
+    stow --dir . --target "$ref_home" -n -v --no-folding "$package" 2>&1 |
+      sed -n 's/^LINK: \(.*\) => .*/\1/p'
   )
+  rm -rf "$ref_home"
 }
 
 package_target_dirs() {

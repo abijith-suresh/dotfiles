@@ -2,6 +2,9 @@
 # Regenerate configs/.stowrc and the managed block of .gitignore from the
 # single policy list in configs/ignore. Run after editing the policy.
 # --check verifies sync without writing (used by scripts/validate.sh).
+# Both outputs render atomically: nothing is replaced unless everything
+# rendered. Hand-maintained lines in .gitignore below the repo-only marker
+# survive regeneration.
 set -euo pipefail
 
 SELF="$(readlink -f "$0")"
@@ -24,29 +27,30 @@ patterns_file="$DOTFILES_DIR/configs/ignore"
 }
 patterns="$(grep -vE '^[[:space:]]*(#|$)' "$patterns_file")"
 
-# gitignore glob per stow ERE. Empty value keeps the pattern out of
+# gitignore glob per policy ERE. Empty value keeps the pattern out of
 # .gitignore only: .git is built into Git and .gitignore stays tracked.
 declare -A GITIGNORE_MAP=(
-  ['\.git']='.git/'
-  ['\.gitignore']=''
-  ['\.DS_Store']='.DS_Store'
-  ['\.zcompdump']='.zcompdump*'
-  ['node_modules']='**/node_modules/'
-  ['\.zsh_history']='.zsh_history'
-  ['\.zwc']='*.zwc'
-  ['\.zwc\.old']='*.zwc.old'
-  ['\.local']='*.local'
-  ['\.backup$']='*.backup'
-  ['\.backup\.']='*.backup.*'
-  ['auth\.json']='auth.json'
-  ['sessions']='**/sessions/'
-  ['logs']='**/logs/'
-  ['statsig']='**/statsig/'
-  ['cache']='**/cache/'
+  ['[.]git(/.*)?$']='.git/'
+  ['[.]gitignore$']=''
+  ['[.]DS_Store$']='.DS_Store'
+  ['[.]zcompdump[^/]*$']='.zcompdump*'
+  ['node_modules(/.*)?$']='**/node_modules/'
+  ['[.]zsh_history$']='.zsh_history'
+  ['[.]zwc$']='*.zwc'
+  ['[.]zwc[.]old$']='*.zwc.old'
+  ['[.]local$']='*.local'
+  ['[.]backup$']='*.backup'
+  ['[.]backup[.][^/]*$']='*.backup.*'
+  ['auth[.]json$']='auth.json'
+  ['sessions(/.*)?$']='**/sessions/'
+  ['logs(/.*)?$']='**/logs/'
+  ['statsig(/.*)?$']='**/statsig/'
+  ['cache(/.*)?$']='**/cache/'
 )
 
 stowrc="$DOTFILES_DIR/configs/.stowrc"
 gitignore="$DOTFILES_DIR/.gitignore"
+repo_only_marker='# Repo-only entries below are hand-maintained.'
 
 render_stowrc() {
   printf '%s\n' '--target=~'
@@ -70,14 +74,33 @@ render_gitignore() {
       printf '%s\n' "$glob"
     fi
   done <<<"$patterns"
-  printf '%s\n' '' '# Repo-only entries below are hand-maintained.' 'Thumbs.db'
 }
 
+# Render everything to a temp tree first; replace destinations only when
+# every mapping resolved.
+tmp="$(mktemp -d)"
+trap 'rm -rf -- "$tmp"' EXIT
+render_stowrc >"$tmp/stowrc"
+render_gitignore >"$tmp/gitignore-head"
+
+# Preserve the hand-maintained tail of .gitignore (everything from the
+# repo-only marker on, minus the marker line itself).
+tail_lines=""
+if [ -f "$gitignore" ]; then
+  tail_start="$(grep -Fn "$repo_only_marker" "$gitignore" | cut -d: -f1 || true)"
+  if [ -n "$tail_start" ]; then
+    tail_lines="$(tail -n +"$((tail_start + 1))" "$gitignore")"
+  fi
+fi
+{
+  cat "$tmp/gitignore-head"
+  printf '%s\n' '' "$repo_only_marker"
+  if [ -n "$tail_lines" ]; then
+    printf '%s\n' "$tail_lines"
+  fi
+} >"$tmp/gitignore"
+
 if [ "$check" -eq 1 ]; then
-  tmp="$(mktemp -d)"
-  trap 'rm -rf -- "$tmp"' EXIT
-  render_stowrc >"$tmp/stowrc"
-  render_gitignore >"$tmp/gitignore"
   if ! cmp -s "$tmp/stowrc" "$stowrc"; then
     printf 'configs/.stowrc is out of sync with configs/ignore; run scripts/sync-ignore.sh\n' >&2
     exit 1
@@ -90,6 +113,6 @@ if [ "$check" -eq 1 ]; then
   exit 0
 fi
 
-render_stowrc >"$stowrc"
-render_gitignore >"$gitignore"
+cat "$tmp/stowrc" >"$stowrc"
+cat "$tmp/gitignore" >"$gitignore"
 printf 'Wrote configs/.stowrc and the managed block of .gitignore\n'

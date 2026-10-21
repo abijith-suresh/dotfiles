@@ -1,24 +1,27 @@
-# The one ignore policy for Stow deployment and conflict backups.
-# scripts/sync-ignore.sh turns this list into configs/.stowrc and the
-# managed block of .gitignore; install/stow.sh enumerates entries from it.
+# The one ignore policy for Stow deployment. scripts/sync-ignore.sh turns
+# this list into configs/.stowrc; install/stow.sh derives deployable entries
+# from Stow's own plan, so the policy needs no second implementation.
 # Add a pattern here (plus a map entry in scripts/sync-ignore.sh); never
-# edit .stowrc or the generated .gitignore block directly.
+# edit .stowrc directly.
 #
-# Patterns are POSIX ERE, matched unanchored against every stowed path -
-# exactly how GNU Stow applies --ignore from .stowrc.
-\.git
-\.gitignore
-\.DS_Store
-\.zcompdump
-node_modules
-\.zsh_history
-\.zwc
-\.zwc\.old
-\.local
-\.backup$
-\.backup\.
-auth\.json
-sessions
-logs
-statsig
-cache
+# Patterns are POSIX ERE tested by Stow against each relative path. Stow
+# anchors them at the end of the path, so suffix patterns end in $ and
+# directory patterns carry (/.*)?$ to also prune descendants. Use [.]
+# for literal dots: Stow 2.4.1 parses .stowrc with shellwords and strips
+# backslash escapes.
+[.]git(/.*)?$
+[.]gitignore$
+[.]DS_Store$
+[.]zcompdump[^/]*$
+node_modules(/.*)?$
+[.]zsh_history$
+[.]zwc$
+[.]zwc[.]old$
+[.]local$
+[.]backup$
+[.]backup[.][^/]*$
+auth[.]json$
+sessions(/.*)?$
+logs(/.*)?$
+statsig(/.*)?$
+cache(/.*)?$

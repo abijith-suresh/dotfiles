@@ -37,12 +37,21 @@ for app in "${apps[@]}"; do
   sandbox="$(mktemp -d /tmp/dotfiles-installer.XXXXXX)"
   home="$sandbox/home"
   log="$sandbox/install.log"
-  mkdir -p "$home"
+  mkdir -p "$home/.local/bin"
   printf '==> %s\n' "$app"
 
-  # A clean PATH keeps host binaries (e.g. an already-installed agy) from
-  # making the sandboxed install a no-op.
-  if PATH=/usr/bin:/bin HOME="$home" SHELL='' DOTFILES_DIR="$REPO_DIR" PLATFORM=ubuntu PKG_MANAGER=apt \
+  # A controlled environment: the sandbox's own bin on PATH (matching the
+  # installer shell's real PATH), no inherited XDG/ZDOTDIR/CODEX_HOME-style
+  # overrides that would let an installer escape the sandbox, and SHELL
+  # cleared so rc-editing branches stay off.
+  if env -i \
+    PATH="$home/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+    HOME="$home" \
+    SHELL='' \
+    TERM=dumb \
+    DOTFILES_DIR="$REPO_DIR" \
+    PLATFORM=ubuntu \
+    PKG_MANAGER=apt \
     bash "$script" >"$log" 2>&1; then
     :
   else
@@ -61,7 +70,7 @@ for app in "${apps[@]}"; do
 
   bin_ok=0
   for entry in "$home"/.local/bin/*; do
-    if [ -x "$entry" ]; then
+    if [ -f "$entry" ] && [ -x "$entry" ]; then
       bin_ok=1
       printf '  binary: %s\n' "${entry##*/}"
     fi
