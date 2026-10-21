@@ -28,13 +28,3 @@ Agent CLIs are installed only; this repository does not manage their configurati
 After installing Pi, install Tangent through Pi's native `pi install` command using the tagged source in `install/apps/agents/tangent.sh`. Pi registers the package without a custom merge layer. Fresh Pi installs start on Pi's default theme, so Catppuccin Mocha is not selected automatically. Keep Pi extensions, themes, and their development dependencies in Tangent, not this repository.
 
 Keep agent state in native directories. Use XDG paths for tools that already support them, without requiring credential moves. Fresh installs must not configure MCP servers. Railway installation is CLI-only.
-
-## Verification
-Always execute repository validation before submitting changes:
-```bash
-scripts/validate.sh
-```
-
-Run `scripts/test-stow.sh` after Stow deployment changes, and
-`scripts/test-installers.sh <agent>` (network required) after changing an
-agent installer.

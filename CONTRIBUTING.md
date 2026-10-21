@@ -1,46 +1,5 @@
 # Contributing
 
-## Validation
-
-Run validation before submitting changes:
-
-```bash
-scripts/validate.sh
-```
-
-`scripts/validate.sh` runs:
-
-- `bash -n` and `zsh -n` (including `.zsh_aliases`)
-- `shfmt -i 2 -ci -d` when `shfmt` is installed
-- `shellcheck` when installed
-- Manifest consistency: every app record resolves to its script or package,
-  docs URLs are present for scripted installs, dependency order is sane
-- Stow package list consistency
-- Stow batch dry-run against a temporary home from inside `configs/`
-- Config policy: no pinned models or providers, Catppuccin Mocha only,
-  no MCP configuration, no agent settings packages
-- Secrets scan over tracked files
-
-Validation does not change files. Run the Stow tests after deployment changes:
-
-```bash
-scripts/test-stow.sh
-```
-
-They use temporary homes to check clean and repeated deployment, conflict
-backups, and zsh startup. To exercise a real agent installer end to end in a
-throwaway home (network required):
-
-```bash
-scripts/test-installers.sh antigravity
-```
-
-There is no GitHub Actions workflow, so these checks run locally.
-
-Pi customizations are developed in [Tangent](https://github.com/abijith-suresh/tangent).
-This repository only installs the release pinned in
-`install/apps/agents/tangent.sh`.
-
 ## Formatting
 
 Shell scripts use:

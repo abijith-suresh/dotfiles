@@ -1,7 +1,6 @@
 # App inventory. install.sh is a dumb iterator over these records; scripts
 # under install/ exist only for installs with real logic. Add an app by
-# inserting one register call into its phase block, then run
-# scripts/validate.sh.
+# inserting one register call into its phase block.
 # Verify snippets intentionally defer expansion: they run inside the
 # end-state verification shell, not here.
 # shellcheck disable=SC2016
@@ -30,12 +29,12 @@
 #   needs=   comma-separated app names that must run earlier in the manifest
 #   docs=    official documentation for the install method (repo rule:
 #            external installer changes reference their official docs)
-# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh and scripts/validate.sh
+# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
 declare -ga PHASE_ORDER=(foundation cli languages agents post-stow)
 declare -ga APP_ORDER=()
-# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh and scripts/validate.sh
+# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
 declare -gA APP_PHASE APP_MODE APP_SOURCE APP_PKG APP_FIXLINK APP_SCRIPT
-# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh and scripts/validate.sh
+# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
 declare -gA APP_BIN APP_VERIFY APP_NEEDS APP_DOCS
 
 register() {

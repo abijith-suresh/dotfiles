@@ -67,5 +67,5 @@ and leaves v2 installs alone.
 
 ## Development
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands and the workflow,
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow,
 and [AGENTS.md](AGENTS.md) for repository rules.
