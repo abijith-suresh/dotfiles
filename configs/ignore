@@ -1,0 +1,24 @@
+# The one ignore policy for Stow deployment and conflict backups.
+# scripts/sync-ignore.sh turns this list into configs/.stowrc and the
+# managed block of .gitignore; install/stow.sh enumerates entries from it.
+# Add a pattern here (plus a map entry in scripts/sync-ignore.sh); never
+# edit .stowrc or the generated .gitignore block directly.
+#
+# Patterns are POSIX ERE, matched unanchored against every stowed path -
+# exactly how GNU Stow applies --ignore from .stowrc.
+\.git
+\.gitignore
+\.DS_Store
+\.zcompdump
+node_modules
+\.zsh_history
+\.zwc
+\.zwc\.old
+\.local
+\.backup$
+\.backup\.
+auth\.json
+sessions
+logs
+statsig
+cache

@@ -218,14 +218,115 @@ run_required_script() {
 run_tolerant_script() {
   local label="$1"
   local script="$2"
-  [ -f "$script" ] || die "Missing install script: $script"
   info "$label"
+  if [ ! -f "$script" ]; then
+    warn "$label failed: missing install script: $script"
+    INSTALL_FAILURES+=("$label")
+    return 1
+  fi
   if bash "$script"; then
     ok "$label"
   else
     warn "$label failed"
     INSTALL_FAILURES+=("$label")
   fi
+}
+
+# Package name for source=pkg records: an exact "$PKG_MANAGER:name" token
+# wins, then a bare name, then a "*:name" fallback.
+pkg_name_for() {
+  local app="$1"
+  local spec="${APP_PKG[$app]:-$app}"
+  local default="$app"
+  local exact=""
+  local part
+  while IFS= read -r part; do
+    [ -n "$part" ] || continue
+    case "$part" in
+      "$PKG_MANAGER":*) exact="${part#*:}" ;;
+      '*':*) default="${part#*:}" ;;
+      *:*) ;;
+      *) default="$part" ;;
+    esac
+  done < <(tr '|' '\n' <<<"$spec")
+  printf '%s\n' "${exact:-$default}"
+}
+
+apply_fixlink() {
+  local fixlink="${APP_FIXLINK[$1]:-}"
+  [ -n "$fixlink" ] || return 0
+
+  local distro="${fixlink%%:*}"
+  local link="${fixlink#*:}"
+  if ! command -v "$link" >/dev/null 2>&1 && command -v "$distro" >/dev/null 2>&1; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$(command -v "$distro")" "$HOME/.local/bin/$link"
+    info "$link symlinked to $(command -v "$distro")"
+  fi
+}
+
+run_pkg_app() {
+  local app="$1"
+  pkg_install "$(pkg_name_for "$app")"
+  apply_fixlink "$app"
+}
+
+# Script path (relative to install/) for source=script records. An explicit
+# script= field wins; otherwise the phase implies the directory.
+script_rel_for() {
+  local app="$1"
+  if [ -n "${APP_SCRIPT[$app]:-}" ]; then
+    printf '%s\n' "${APP_SCRIPT[$app]}"
+    return 0
+  fi
+  case "${APP_PHASE[$app]}" in
+    foundation | cli) printf 'apps/cli/%s.sh\n' "$app" ;;
+    agents | post-stow) printf 'apps/agents/%s.sh\n' "$app" ;;
+    languages) printf 'languages/%s.sh\n' "$app" ;;
+    *) return 1 ;;
+  esac
+}
+
+run_app() {
+  local app="$1"
+  if [ "${APP_SOURCE[$app]:-pkg}" = "pkg" ]; then
+    info "$app"
+    if run_pkg_app "$app"; then
+      ok "$app"
+    else
+      warn "$app failed"
+      INSTALL_FAILURES+=("$app")
+    fi
+    return
+  fi
+
+  local script
+  script="$DOTFILES_DIR/install/$(script_rel_for "$app")"
+  if [ "${APP_MODE[$app]:-tolerant}" = "required" ]; then
+    run_required_script "$app" "$script"
+  else
+    run_tolerant_script "$app" "$script"
+  fi
+}
+
+verify_all() {
+  section "Verifying installed state"
+  local app snippet
+  for app in "${APP_ORDER[@]}"; do
+    snippet="${APP_VERIFY[$app]:-}"
+    if [ "$snippet" = "none" ]; then
+      continue
+    fi
+    if [ -z "$snippet" ]; then
+      snippet="command -v '${APP_BIN[$app]:-$app}' >/dev/null 2>&1"
+    fi
+    if bash -c "$snippet" >/dev/null 2>&1; then
+      ok "verify $app"
+    else
+      warn "verify $app failed"
+      INSTALL_FAILURES+=("verify $app")
+    fi
+  done
 }
 
 github_latest_tag() {

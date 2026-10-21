@@ -26,17 +26,28 @@ STOW_PACKAGES=(
   zsh
 )
 
+# The one ignore policy lives in configs/ignore as POSIX ERE, matched
+# unanchored against every stowed path - the same semantics Stow applies
+# to its .stowrc ignore rules. .stowrc and the managed .gitignore block
+# are generated from that file by scripts/sync-ignore.sh.
+ignore_regex() {
+  local file="$DOTFILES_DIR/configs/ignore"
+  [ -f "$file" ] || die "Missing ignore policy: $file"
+  grep -vE '^[[:space:]]*(#|$)' "$file"
+}
+
 package_entries() {
   local package_dir="$1"
+  local combined
+  combined="$(ignore_regex | paste -sd '|' -)"
   (
     cd "$package_dir"
-    find . -mindepth 1 \
-      \( -path './.git' -o -path './.git/*' \) -prune -o \
-      \( -name '.DS_Store' -o -name '.gitignore' -o -name '.zcompdump*' -o -name '.zsh_history' \) -prune -o \
-      \( -name '*.zwc' -o -name '*.zwc.old' -o -name '*.local' -o -name '*.backup' -o -name '*.backup.*' -o -name 'auth.json' \) -prune -o \
-      \( -name 'sessions' -o -name 'logs' -o -name 'statsig' -o -name 'cache' \) -prune -o \
-      \( -name 'node_modules' \) -prune -o \
-      \( -type f -o -type l \) -print
+    if [ -n "$combined" ]; then
+      find . -mindepth 1 \( -type f -o -type l \) -print |
+        grep -Ev "$combined" || true
+    else
+      find . -mindepth 1 \( -type f -o -type l \) -print
+    fi
   )
 }
 
@@ -157,6 +168,33 @@ stow_all() {
     info "stow $package"
     stow_package "$package"
   done
+  verify_deployment
+}
+
+# End-state check: every tracked config file must exist in $HOME and
+# resolve back into this checkout. Fails loudly instead of trusting the
+# stow exit code alone.
+verify_deployment() {
+  local package package_dir rel source target bad=0
+
+  for package in "${STOW_PACKAGES[@]}"; do
+    package_dir="$DOTFILES_DIR/configs/$package"
+    [ -d "$package_dir" ] || continue
+    while IFS= read -r rel; do
+      rel="${rel#./}"
+      source="$package_dir/$rel"
+      target="$HOME/$rel"
+      if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+        warn "deployment missing: ~/$rel"
+        bad=1
+      elif ! path_resolves_to_source "$target" "$source"; then
+        warn "deployment not linked to repo: ~/$rel"
+        bad=1
+      fi
+    done < <(package_entries "$package_dir")
+  done
+
+  [ "$bad" -eq 0 ] || die "Stow deployment verification failed"
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
