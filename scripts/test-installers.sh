@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Sandbox-run agent installers in a throwaway HOME. Needs network; each app
-# runs its real upstream installer. Verifies the three things static checks
-# cannot: the install succeeds, a binary lands in ~/.local/bin, and no shell
-# rc file in $HOME gets touched. Usage: test-installers.sh [app ...]
-# (default: every agent installer that can run without mise).
+# runs its real upstream installer. Verifies the install succeeds, a binary
+# lands in ~/.local/bin, and no shell rc file gets touched.
+# Usage: test-installers.sh [app ...] (default: every agent installer that
+# can run without mise; pi and tangent need mise's node).
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -40,10 +40,8 @@ for app in "${apps[@]}"; do
   mkdir -p "$home/.local/bin"
   printf '==> %s\n' "$app"
 
-  # A controlled environment: the sandbox's own bin on PATH (matching the
-  # installer shell's real PATH), no inherited XDG/ZDOTDIR/CODEX_HOME-style
-  # overrides that would let an installer escape the sandbox, and SHELL
-  # cleared so rc-editing branches stay off.
+  # env -i with the sandbox bin on PATH: no host binaries or XDG/CODEX_HOME
+  # overrides, no rc-editing branches (SHELL cleared).
   if env -i \
     PATH="$home/.local/bin:/usr/local/bin:/usr/bin:/bin" \
     HOME="$home" \

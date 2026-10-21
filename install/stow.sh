@@ -26,11 +26,8 @@ STOW_PACKAGES=(
   zsh
 )
 
-# The one ignore policy lives in configs/ignore; configs/.stowrc is
-# generated from it by scripts/sync-ignore.sh and Stow applies it natively.
-# Deployable entries are read from Stow's own simulation against an empty
-# reference home, so there is no second implementation of the ignore rules
-# to keep in sync.
+# Deployable entries come from Stow's own simulation against an empty
+# reference home: one engine decides what is ignored and what links.
 package_entries() {
   local package_dir="$1"
   local package ref_home
@@ -167,9 +164,8 @@ stow_all() {
   verify_deployment
 }
 
-# End-state check: every tracked config file must exist in $HOME and
-# resolve back into this checkout. Fails loudly instead of trusting the
-# stow exit code alone.
+# End-state check: every deployable entry must exist in $HOME and resolve
+# back into this checkout.
 verify_deployment() {
   local package package_dir rel source target bad=0
 

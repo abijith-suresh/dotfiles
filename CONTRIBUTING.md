@@ -15,7 +15,6 @@ scripts/validate.sh
 - `shellcheck` when installed
 - Manifest consistency: every app record resolves to its script or package,
   docs URLs are present for scripted installs, dependency order is sane
-- Ignore policy sync: `configs/ignore` ↔ `configs/.stowrc` ↔ `.gitignore`
 - Stow package list consistency
 - Stow batch dry-run against a temporary home from inside `configs/`
 - Config policy: no pinned models or providers, Catppuccin Mocha only,

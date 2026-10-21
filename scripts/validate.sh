@@ -188,10 +188,6 @@ check_manifest() {
   return "$status"
 }
 
-check_ignore_sync() {
-  bash "$ROOT/scripts/sync-ignore.sh" --check
-}
-
 check_stow_package_list() {
   local expected actual status
   expected="$(mktemp)"
@@ -206,10 +202,10 @@ check_stow_package_list() {
   return "$status"
 }
 
-# One batch dry-run from inside configs/ with an isolated HOME: exercises
-# configs/.stowrc ignore rules exactly as the installer does, and catches
-# cross-package collisions a per-package loop cannot see. The isolated
-# HOME also keeps a user's own ~/.stowrc out of the result.
+# One batch dry-run from inside configs/ with an isolated HOME: Stow reads
+# .stowrc only from the working directory, so this exercises the ignore
+# rules as the installer does, catches cross-package collisions, and keeps
+# a user's own ~/.stowrc out of the result.
 check_stow_tmp_home() {
   local tmp_home status=0
   tmp_home="$(mktemp -d)"
@@ -291,7 +287,6 @@ run_check "zsh syntax" check_zsh
 run_check "shfmt" check_shfmt
 run_check "shellcheck" check_shellcheck
 run_check "manifest consistency" check_manifest
-run_check "ignore policy sync" check_ignore_sync
 run_check "stow package list" check_stow_package_list
 run_check "stow batch dry run" check_stow_tmp_home
 run_check "config policy" check_policy
