@@ -17,7 +17,7 @@ Personal GNU Stow dotfiles for WSL Ubuntu, Ubuntu, and Debian. Keep setup direct
 
 ## Installer organization
 
-`install/manifest.bash` is the app inventory: one `register` record per app; `install.sh` only iterates it. Records in a phase run in listed order, phases in `PHASE_ORDER` (foundation, cli, languages, agents, post-stow). Plain package installs are records only (`source=pkg`); a script under `install/` exists only when the install needs real logic. Every script must be referenced by some record. Record the official documentation URL in `docs=` for scripted installs.
+`install/manifest.bash` is the app inventory: one `register` record per app; `install.sh` only iterates it. Records run in the order they appear, grouped by phase: foundation, cli, languages, agents, post-stow (Tangent, after Stow). Plain package installs are records only (`source=pkg`); a script under `install/apps/` or `install/languages/` exists only when the install needs real logic and must be referenced by some record. Record the official documentation URL in `docs=` for scripted installs.
 
 Stow ignore rules live in `configs/.stowrc` and are applied by Stow itself; `install/stow.sh` derives deployable entries from Stow's own plan.
 

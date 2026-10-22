@@ -9,14 +9,13 @@
 #
 # Fields:
 #   phase=   foundation | cli | languages | agents | post-stow
-#            Records run in PHASE_ORDER (foundation, cli, languages, agents,
-#            post-stow); within a phase, listed order. post-stow runs after
-#            Stow deployment.
+#            Records run in the order they appear, grouped by phase;
+#            post-stow runs after Stow deployment.
 #   mode=    required (failure aborts the install) | tolerant (failure is
 #            recorded and reported in the summary)
 #   source=  pkg (package-manager install only) | script (run a script)
-#   pkg=     package name for source=pkg, optionally per package manager:
-#            "apt:fd-find|*:fd". A bare token applies everywhere.
+#   pkg=     package name for source=pkg; override per package manager
+#            with pkg_apt=, pkg_brew=, pkg_dnf=, or pkg_pacman=.
 #   fixlink= distro-binary:target — symlink into ~/.local/bin when the
 #            distro ships the binary under another name (batcat, fdfind).
 #   script=  path under install/ for source=script. Default derives from
@@ -26,16 +25,16 @@
 #            (defaults to <name>; only needed when it differs)
 #   verify=  shell snippet proving the installed state; overrides the
 #            default "command -v <bin>"; 'none' skips verification
-#   needs=   comma-separated app names that must run earlier in the manifest
 #   docs=    official documentation for the install method (repo rule:
 #            external installer changes reference their official docs)
 # shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
-declare -ga PHASE_ORDER=(foundation cli languages agents post-stow)
 declare -ga APP_ORDER=()
 # shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
 declare -gA APP_PHASE APP_MODE APP_SOURCE APP_PKG APP_FIXLINK APP_SCRIPT
 # shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
-declare -gA APP_BIN APP_VERIFY APP_NEEDS APP_DOCS
+declare -gA APP_PKG_APT APP_PKG_BREW APP_PKG_DNF APP_PKG_PACMAN
+# shellcheck disable=SC2034 # shared state: consumed by install/lib.sh
+declare -gA APP_BIN APP_VERIFY APP_DOCS
 
 register() {
   local name="${1:?register: app name required}"
@@ -61,11 +60,14 @@ register() {
       mode) APP_MODE[$name]="$value" ;;
       source) APP_SOURCE[$name]="$value" ;;
       pkg) APP_PKG[$name]="$value" ;;
+      pkg_apt) APP_PKG_APT[$name]="$value" ;;
+      pkg_brew) APP_PKG_BREW[$name]="$value" ;;
+      pkg_dnf) APP_PKG_DNF[$name]="$value" ;;
+      pkg_pacman) APP_PKG_PACMAN[$name]="$value" ;;
       fixlink) APP_FIXLINK[$name]="$value" ;;
       script) APP_SCRIPT[$name]="$value" ;;
       bin) APP_BIN[$name]="$value" ;;
       verify) APP_VERIFY[$name]="$value" ;;
-      needs) APP_NEEDS[$name]="$value" ;;
       docs) APP_DOCS[$name]="$value" ;;
       *) die "register $name: unknown field: $key" ;;
     esac
@@ -97,7 +99,7 @@ register bat phase=cli source=pkg pkg=bat fixlink=batcat:bat
 register btop phase=cli source=pkg pkg=btop
 register eza phase=cli source=pkg pkg=eza
 register fastfetch phase=cli source=pkg pkg=fastfetch
-register fd phase=cli source=pkg pkg='apt:fd-find|*:fd' fixlink=fdfind:fd
+register fd phase=cli source=pkg pkg=fd pkg_apt=fd-find fixlink=fdfind:fd
 register fzf phase=cli source=pkg pkg=fzf
 register gh phase=cli source=script \
   docs=https://github.com/cli/cli/blob/trunk/docs/install_linux.md
@@ -124,7 +126,7 @@ register zellij phase=cli source=script \
   docs=https://zellij.dev/documentation/installation.html
 register zsh-plugins phase=cli source=script \
   docs=https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md \
-  verify='test -f "$HOME/.local/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" && test -f "$HOME/.local/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"'
+  verify='data="${XDG_DATA_HOME:-$HOME/.local/share}"; test -f "$data/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" && test -f "$data/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"'
 register zoxide phase=cli source=script \
   docs=https://github.com/ajeetdsouza/zoxide
 
@@ -160,7 +162,7 @@ register grok phase=agents source=script \
   docs=https://x.ai/cli
 register opencode phase=agents source=script \
   docs=https://opencode.ai/v2/docs
-register pi phase=agents source=script needs=node \
+register pi phase=agents source=script \
   docs=https://pi.dev/docs/latest/quickstart
 
 # --- Post-stow ------------------------------------------------------------------

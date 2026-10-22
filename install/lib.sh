@@ -122,7 +122,7 @@ ensure_homebrew() {
   fi
 
   warn "Homebrew is missing; installing it for macOS support"
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   elif [ -x /usr/local/bin/brew ]; then
@@ -146,7 +146,7 @@ pkg_update() {
     pacman)
       # Source policy: Arch does not support partial upgrades. Checked 2026-09-13.
       # https://wiki.archlinux.org/title/System_maintenance#Partial_upgrades_are_unsupported
-      sudo pacman -Syu
+      sudo pacman -Syu --noconfirm
       ;;
     brew)
       ensure_homebrew
@@ -215,25 +215,18 @@ run_required_script() {
   ok "$label"
 }
 
-# Package name for source=pkg records: an exact "$PKG_MANAGER:name" token
-# wins, then a bare name, then a "*:name" fallback, then the app name.
+# Package name for source=pkg records: a per-package-manager override
+# (pkg_apt=, pkg_brew=, ...) wins, then pkg=, then the app name.
 pkg_name_for() {
   local app="$1"
-  local spec="${APP_PKG[$app]:-$app}"
-  local exact=""
-  local bare=""
-  local wild=""
-  local part
-  while IFS= read -r part; do
-    [ -n "$part" ] || continue
-    case "$part" in
-      "$PKG_MANAGER":*) exact="${part#*:}" ;;
-      '*':*) wild="${part#*:}" ;;
-      *:*) ;;
-      *) bare="$part" ;;
-    esac
-  done < <(tr '|' '\n' <<<"$spec")
-  printf '%s\n' "${exact:-${bare:-${wild:-$app}}}"
+  local override=""
+  case "$PKG_MANAGER" in
+    apt) override="${APP_PKG_APT[$app]:-}" ;;
+    dnf) override="${APP_PKG_DNF[$app]:-}" ;;
+    pacman) override="${APP_PKG_PACMAN[$app]:-}" ;;
+    brew) override="${APP_PKG_BREW[$app]:-}" ;;
+  esac
+  printf '%s\n' "${override:-${APP_PKG[$app]:-$app}}"
 }
 
 apply_fixlink() {
@@ -243,8 +236,8 @@ apply_fixlink() {
   local distro="${fixlink%%:*}"
   local link="${fixlink#*:}"
   if ! command -v "$link" >/dev/null 2>&1 && command -v "$distro" >/dev/null 2>&1; then
-    mkdir -p "$HOME/.local/bin"
-    ln -sfn "$(command -v "$distro")" "$HOME/.local/bin/$link"
+    mkdir -p "$HOME/.local/bin" || return 1
+    ln -sfn "$(command -v "$distro")" "$HOME/.local/bin/$link" || return 1
     info "$link symlinked to $(command -v "$distro")"
   fi
 }

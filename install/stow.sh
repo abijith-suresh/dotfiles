@@ -30,18 +30,17 @@ STOW_PACKAGES=(
 # reference home: one engine decides what is ignored and what links.
 package_entries() {
   local package_dir="$1"
-  local package ref_home
+  local package ref_home plan status=0
   package="$(basename "$package_dir")"
   [ -d "$package_dir" ] || die "Missing Stow package: $package"
 
   ref_home="$(mktemp -d)"
-  (
-    cd "$DOTFILES_DIR/configs"
-    # Stow prints its plan (LINK lines) on stderr; keep it in the pipe.
-    stow --dir . --target "$ref_home" -n -v --no-folding "$package" 2>&1 |
-      sed -n 's/^LINK: \(.*\) => .*/\1/p'
-  )
+  plan="$(cd "$DOTFILES_DIR/configs" &&
+    stow --dir . --target "$ref_home" -n -v --no-folding "$package" 2>&1)" || status=1
   rm -rf "$ref_home"
+  # A failed simulation must not pass as an empty package.
+  [ "$status" -eq 0 ] || die "Stow simulation failed for package: $package"
+  printf '%s\n' "$plan" | sed -n 's/^LINK: \(.*\) => .*/\1/p'
 }
 
 package_target_dirs() {

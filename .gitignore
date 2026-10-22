@@ -15,6 +15,6 @@ configs/zsh/.config/zsh/.zcompdump*
 configs/zsh/.config/zsh/*.local
 configs/git/.config/git/*.local
 
-# Dotfiles-managed backups created during tests
+# Dotfiles-managed conflict backups
 *.backup
 *.backup.*

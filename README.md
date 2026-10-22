@@ -62,8 +62,8 @@ fresh Pi installs start on Pi's default theme. Pi's package checkout stays in it
 native directory. Future Tangent updates require changing the tag in the
 installer.
 
-OpenCode installs from the official v2 channel, upgrades existing v1 installs,
-and leaves v2 installs alone.
+OpenCode installs the latest v2 from the official channel and exposes the
+binary at `~/.local/bin/opencode`.
 
 ## Development
 
