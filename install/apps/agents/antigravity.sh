@@ -4,7 +4,7 @@ set -euo pipefail
 # shellcheck disable=SC1090,SC1091
 source "${DOTFILES_DIR:?}/install/lib.sh"
 
-# Source policy: official Antigravity CLI installer, checked 2026-10-20.
+# Source policy: official Antigravity CLI installer, checked 2026-10-21.
 # https://www.antigravity.google/docs/cli/install
 #
 # The bootstrapper accepts only -d/--dir and -h/--help; --skip-aliases and
@@ -22,4 +22,6 @@ trap 'rm -rf -- "$tmp_home"' EXIT
 curl -fsSL https://antigravity.google/cli/install.sh | HOME="$tmp_home" bash
 mkdir -p "$HOME/.local/bin"
 install -m 0755 "$tmp_home/.local/bin/agy" "$HOME/.local/bin/agy"
-"$HOME/.local/bin/agy" install --skip-aliases --skip-path || true
+if ! "$HOME/.local/bin/agy" install --skip-aliases --skip-path; then
+  warn "antigravity onboarding handoff failed"
+fi

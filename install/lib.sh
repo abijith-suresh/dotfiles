@@ -122,7 +122,7 @@ ensure_homebrew() {
   fi
 
   warn "Homebrew is missing; installing it for macOS support"
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   elif [ -x /usr/local/bin/brew ]; then
@@ -146,7 +146,7 @@ pkg_update() {
     pacman)
       # Source policy: Arch does not support partial upgrades. Checked 2026-09-13.
       # https://wiki.archlinux.org/title/System_maintenance#Partial_upgrades_are_unsupported
-      sudo pacman -Syu
+      sudo pacman -Syu --noconfirm
       ;;
     brew)
       ensure_homebrew
@@ -215,17 +215,110 @@ run_required_script() {
   ok "$label"
 }
 
-run_tolerant_script() {
-  local label="$1"
-  local script="$2"
-  [ -f "$script" ] || die "Missing install script: $script"
-  info "$label"
-  if bash "$script"; then
-    ok "$label"
-  else
-    warn "$label failed"
-    INSTALL_FAILURES+=("$label")
+# Package name for source=pkg records: a per-package-manager override
+# (pkg_apt=, pkg_brew=, ...) wins, then pkg=, then the app name.
+pkg_name_for() {
+  local app="$1"
+  local override=""
+  case "$PKG_MANAGER" in
+    apt) override="${APP_PKG_APT[$app]:-}" ;;
+    dnf) override="${APP_PKG_DNF[$app]:-}" ;;
+    pacman) override="${APP_PKG_PACMAN[$app]:-}" ;;
+    brew) override="${APP_PKG_BREW[$app]:-}" ;;
+  esac
+  printf '%s\n' "${override:-${APP_PKG[$app]:-$app}}"
+}
+
+apply_fixlink() {
+  local fixlink="${APP_FIXLINK[$1]:-}"
+  [ -n "$fixlink" ] || return 0
+
+  local distro="${fixlink%%:*}"
+  local link="${fixlink#*:}"
+  if ! command -v "$link" >/dev/null 2>&1 && command -v "$distro" >/dev/null 2>&1; then
+    mkdir -p "$HOME/.local/bin" || return 1
+    ln -sfn "$(command -v "$distro")" "$HOME/.local/bin/$link" || return 1
+    info "$link symlinked to $(command -v "$distro")"
   fi
+}
+
+run_pkg_app() {
+  local app="$1"
+  local status=0
+  pkg_install "$(pkg_name_for "$app")" || status=1
+  apply_fixlink "$app" || status=1
+  return "$status"
+}
+
+# Script path (relative to install/) for source=script records. An explicit
+# script= field wins; otherwise the phase implies the directory.
+script_rel_for() {
+  local app="$1"
+  if [ -n "${APP_SCRIPT[$app]:-}" ]; then
+    printf '%s\n' "${APP_SCRIPT[$app]}"
+    return 0
+  fi
+  case "${APP_PHASE[$app]}" in
+    foundation | cli) printf 'apps/cli/%s.sh\n' "$app" ;;
+    agents | post-stow) printf 'apps/agents/%s.sh\n' "$app" ;;
+    languages) printf 'languages/%s.sh\n' "$app" ;;
+    *) return 1 ;;
+  esac
+}
+
+run_app() {
+  local app="$1"
+  local status=0
+  info "$app"
+
+  if [ "${APP_SOURCE[$app]:-pkg}" = "pkg" ]; then
+    run_pkg_app "$app" || status=1
+  else
+    local script
+    script="$DOTFILES_DIR/install/$(script_rel_for "$app")"
+    if [ ! -f "$script" ]; then
+      warn "$app: missing install script: $script"
+      status=1
+    else
+      bash "$script" || status=1
+    fi
+  fi
+
+  if [ "$status" -eq 0 ]; then
+    ok "$app"
+  elif [ "${APP_MODE[$app]:-tolerant}" = "required" ]; then
+    die "$app failed"
+  else
+    warn "$app failed"
+    INSTALL_FAILURES+=("$app")
+  fi
+}
+
+verify_all() {
+  section "Verifying installed state"
+  local app snippet bin
+  for app in "${APP_ORDER[@]}"; do
+    snippet="${APP_VERIFY[$app]:-}"
+    if [ "$snippet" = "none" ]; then
+      continue
+    fi
+    if [ -n "$snippet" ]; then
+      if bash -c "$snippet" >/dev/null 2>&1; then
+        ok "verify $app"
+      else
+        warn "verify $app failed"
+        INSTALL_FAILURES+=("verify $app")
+      fi
+      continue
+    fi
+    bin="${APP_BIN[$app]:-$app}"
+    if command -v "$bin" >/dev/null 2>&1; then
+      ok "verify $app"
+    else
+      warn "verify $app failed"
+      INSTALL_FAILURES+=("verify $app")
+    fi
+  done
 }
 
 github_latest_tag() {

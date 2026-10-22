@@ -7,16 +7,14 @@ Thumbs.db
 *.zwc.old
 
 # Runtime / cache files inside tracked config trees
-**/node_modules
-configs/tmux/.config/tmux/plugins/
+**/node_modules/
 configs/zsh/.config/zsh/.zsh_history
 configs/zsh/.config/zsh/.zcompdump*
 
 # Explicit local override files
 configs/zsh/.config/zsh/*.local
-configs/bash/*.local
 configs/git/.config/git/*.local
 
-# Dotfiles-managed backups created during migrations/tests
+# Dotfiles-managed conflict backups
 *.backup
 *.backup.*

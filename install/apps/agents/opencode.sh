@@ -4,42 +4,22 @@ set -euo pipefail
 # shellcheck disable=SC1090,SC1091
 source "${DOTFILES_DIR:?}/install/lib.sh"
 
-# Source policy: official OpenCode v2 installation methods.
+# Source policy: official OpenCode v2 installer, checked 2026-10-21.
 # https://opencode.ai/v2/docs
 #
-# v2 installs to ~/.opencode/bin/opencode and also drops an `opencode2`
-# compatibility shim. PATH is owned by the zsh package
-# (configs/zsh/.config/zsh/.zshrc), so shell rc files must not be modified.
-#
-# The v2 AUR package is `opencode-beta`; there is no v2 `opencode` package.
-# Arch therefore falls through to the official installer instead of installing
-# a stale v1 package.
+# v2 installs to ~/.opencode/bin/opencode, which the installer shell's PATH
+# does not carry; expose the binary through ~/.local/bin for scripts and the
+# end-state verification. PATH in interactive shells is owned by the zsh
+# package.
+native_bin="$HOME/.opencode/bin/opencode"
 
-# Detect an existing install so a v1 binary is migrated rather than skipped.
-installed=""
-if command -v opencode >/dev/null 2>&1; then
-  installed="$(opencode --version 2>/dev/null | head -n1 || true)"
+if [ ! -x "$native_bin" ]; then
+  curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
 fi
 
-major=""
-if [[ "$installed" =~ ([0-9]+)\. ]]; then
-  major="${BASH_REMATCH[1]}"
+if [ -x "$native_bin" ]; then
+  mkdir -p "$HOME/.local/bin"
+  ln -sfn "$native_bin" "$HOME/.local/bin/opencode"
+else
+  warn "opencode installer produced no binary at ~/.opencode/bin/opencode"
 fi
-
-if [[ -n "$major" ]] && ((major >= 2)); then
-  info "opencode v2 already installed (${installed})"
-  exit 0
-fi
-
-if [[ -n "$installed" ]]; then
-  info "migrating opencode to v2 (found: ${installed})"
-fi
-
-case "$PKG_MANAGER" in
-  brew)
-    brew install anomalyco/tap/opencode-v2
-    ;;
-  *)
-    curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
-    ;;
-esac

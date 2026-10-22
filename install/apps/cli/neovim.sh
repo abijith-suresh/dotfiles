@@ -4,18 +4,12 @@ set -euo pipefail
 # shellcheck disable=SC1090,SC1091
 source "${DOTFILES_DIR:?}/install/lib.sh"
 
-# Source policy: official upstream release on Linux where distro packages lag.
-# This config uses vim.pack, so Neovim 0.12+ is required.
+# Source policy: latest official upstream release on Linux, package
+# manager elsewhere.
+# https://github.com/neovim/neovim/releases/latest
 if command -v nvim >/dev/null 2>&1; then
-  version="$(nvim --version | sed -n 's/^NVIM v\([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2/p' | head -1)"
-  if [ -n "$version" ]; then
-    major="${version%% *}"
-    minor="${version##* }"
-    if [ "$major" -gt 0 ] || [ "$minor" -ge 12 ]; then
-      info "nvim already installed: $(nvim --version | head -1)"
-      exit 0
-    fi
-  fi
+  info "nvim already installed: $(nvim --version | head -1)"
+  exit 0
 fi
 
 case "$PKG_MANAGER" in

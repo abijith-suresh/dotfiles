@@ -57,15 +57,15 @@ settings. Fresh installs do not configure MCP servers. Railway uses its
 After installing Pi, `install.sh` installs
 [Tangent](https://github.com/abijith-suresh/tangent) through Pi's native package
 manager. The tagged source in `install/apps/agents/tangent.sh` is the version to
-install, currently `0.0.1`. Tangent contains only the Catppuccin Mocha theme;
+install. Tangent contains only the Catppuccin Mocha theme;
 fresh Pi installs start on Pi's default theme. Pi's package checkout stays in its
 native directory. Future Tangent updates require changing the tag in the
 installer.
 
-OpenCode installs from the official v2 channel, upgrades existing v1 installs,
-and leaves v2 installs alone.
+OpenCode installs the latest v2 from the official channel and exposes the
+binary at `~/.local/bin/opencode`.
 
 ## Development
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for validation commands and the workflow,
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow,
 and [AGENTS.md](AGENTS.md) for repository rules.
